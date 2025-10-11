@@ -7,7 +7,7 @@
 
 using namespace std;
 
-vector<int> selectNodes(int totalNodes) {
+vector<int> selectNodes(int totalNodes) { //Select random 50% nodes 
     int k = (totalNodes + 1) / 2;
     vector<int> indices(totalNodes);
     std::iota(indices.begin(), indices.end(), 0);
@@ -78,7 +78,7 @@ vector<int> nearestNeighborFlexible(const vector<int>& selectedNodes,
                 if (score < bestScore) {
                     bestScore = score;
                     bestNode = node;
-                    bestPos = i;
+                    bestPos = i + 1;
                 }
             }
         }
