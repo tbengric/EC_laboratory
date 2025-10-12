@@ -6,9 +6,28 @@
 #include "node.h"
 #include "distance_matrix.h"
 #include "heuristics.h"
-
+#include <iomanip> 
 
 using namespace std;
+
+void saveResults(const string& filename,
+                 const vector<Node>& nodes,
+                 const vector<int>& path,
+                 const string& label) {
+    ofstream out(filename, ios::app); // append mode
+    if (!out.is_open()) {
+        cerr << "Error: could not open " << filename << endl;
+        return;
+    }
+    out << label << "\n";
+    out << "x,y,cost\n"; // header for cost
+    for (int idx : path) {
+        out << nodes[idx].x << "," << nodes[idx].y << "," << nodes[idx].cost << "\n";
+    }
+    out << "\n";
+    out.close();
+}
+
 
 void printPath(const vector<int>& path) {
     for (int node : path) {
@@ -19,6 +38,7 @@ void printPath(const vector<int>& path) {
 
 int main() {
     string filename = "TSPB.csv"; // your CSV file
+    string tsp_type = "TSPB";
     char delimiter = ';';         // assuming semicolon-separated CSV
 
     // Vectors to store each column
@@ -60,11 +80,25 @@ int main() {
     vector<vector<int>> distanceMatrix = DistanceMatrix(nodes);
     vector<int> selectedNodes = selectNodes(nodes.size());
 
+    cout << "Selected nodes: ";
+    printPath(selectedNodes);
+
+    vector<int> bestRandPath;
+    int bestRandScore = -1;
+
     for (int i = 0; i < 200; ++i) {
         auto randPath = randomSolution(selectedNodes);
-        auto score = computeObjective(randPath, distanceMatrix, nodes);
+        int score = computeObjective(randPath, distanceMatrix, nodes);
         cout << "Random " << i << ": " << score << "\n";
+
+        if (bestRandScore == -1 || score < bestRandScore) {
+            bestRandScore = score;
+            bestRandPath = randPath;
+        }
     }
+
+    saveResults("visualization/"+ tsp_type +"_paths.csv", nodes, bestRandPath, "Random Search");
+
     int i = 1;
     int bestScoreNNend = -1;
     int bestScoreNNflex = -1;
@@ -103,6 +137,10 @@ int main() {
     cout << "Best Greedy: " << bestScoreGreedy << "\n";
     cout << "Best Path: " << "\n";
     printPath(bestPath3);
+
+    saveResults("visualization/"+ tsp_type +"_paths.csv", nodes, bestPath1, "Nearest Neighbor");
+    saveResults("visualization/"+ tsp_type +"_paths.csv", nodes, bestPath2, "Nearest Neighbor Flexible");
+    saveResults("visualization/"+ tsp_type +"_paths.csv", nodes, bestPath3, "Greedy Cycle");
 
     return 0;
 }
