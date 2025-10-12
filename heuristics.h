@@ -7,11 +7,15 @@
 
 using namespace std;
 
+
 vector<int> selectNodes(int totalNodes) { //Select random 50% nodes 
     int k = (totalNodes + 1) / 2;
     vector<int> indices(totalNodes);
     std::iota(indices.begin(), indices.end(), 0);
-    shuffle(indices.begin(), indices.end(), std::mt19937{random_device{}()});
+
+    std::mt19937 rng(42); // 42 = fixed seed
+    shuffle(indices.begin(), indices.end(), rng);
+    // shuffle(indices.begin(), indices.end(), std::mt19937{random_device{}()});
     indices.resize(k);
     return indices;
 }
@@ -29,6 +33,8 @@ int computeObjective(const vector<int>& path,
 
 vector<int> randomSolution(const vector<int>& selectedNodes) {
     vector<int> path = selectedNodes;
+    // std::mt19937 rng(42); // 42 = fixed seed
+    // shuffle(path.begin(), path.end(), rng);
     shuffle(path.begin(), path.end(), std::mt19937{random_device{}()});
     return path;
 }
