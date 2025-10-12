@@ -6,7 +6,9 @@
 #include "node.h"
 #include "distance_matrix.h"
 #include "heuristics.h"
-#include <iomanip> 
+#include <iomanip>
+#include <numeric>
+#include <algorithm>
 
 using namespace std;
 
@@ -28,23 +30,31 @@ void saveResults(const string& filename,
     out.close();
 }
 
+double average(const vector<int>& values) {
+    if (values.empty()) return 0.0;
+    return accumulate(values.begin(), values.end(), 0.0) / values.size();
+}
 
 void printPath(const vector<int>& path) {
-    for (int node : path) {
-        cout << node << " ";
-    }
+    for (int node : path) cout << node << " ";
     cout << endl;
 }
+
+auto printStats = [](const string& name, const vector<int>& values) {
+    if (values.empty()) return;
+    cout << fixed << setprecision(2);
+    cout << name << ":\n";
+    cout << "  Min: " << *min_element(values.begin(), values.end()) << "\n";
+    cout << "  Max: " << *max_element(values.begin(), values.end()) << "\n";
+    cout << "  Avg: " << average(values) << "\n";
+};
 
 int main() {
     string filename = "TSPB.csv"; // your CSV file
     string tsp_type = "TSPB";
     char delimiter = ';';         // assuming semicolon-separated CSV
 
-    // Vectors to store each column
-    vector<int> x;
-    vector<int> y;
-    vector<int> costs;
+    vector<int> x, y, costs;
 
     ifstream file(filename);
     if (!file.is_open()) {
@@ -83,12 +93,15 @@ int main() {
     cout << "Selected nodes: ";
     printPath(selectedNodes);
 
+    // Random Search
     vector<int> bestRandPath;
     int bestRandScore = -1;
+    vector<int> randScores;
 
     for (int i = 0; i < 200; ++i) {
         auto randPath = randomSolution(selectedNodes);
         int score = computeObjective(randPath, distanceMatrix, nodes);
+        randScores.push_back(score);
         cout << "Random " << i << ": " << score << "\n";
 
         if (bestRandScore == -1 || score < bestRandScore) {
@@ -96,14 +109,16 @@ int main() {
             bestRandPath = randPath;
         }
     }
+    saveResults("visualization/" + tsp_type + "_paths.csv", nodes, bestRandPath, "Random Search");
 
-    saveResults("visualization/"+ tsp_type +"_paths.csv", nodes, bestRandPath, "Random Search");
-
+    // Heuristic Searches
     int i = 1;
     int bestScoreNNend = -1;
     int bestScoreNNflex = -1;
     int bestScoreGreedy = -1;
     vector<int> bestPath1, bestPath2, bestPath3;
+    vector<int> nnEndScores, nnFlexScores, greedyScores;
+
     for (int start : selectedNodes) {
         auto path1 = nearestNeighborEnd(selectedNodes, distanceMatrix, nodes, start);
         auto path2 = nearestNeighborFlexible(selectedNodes, distanceMatrix, nodes, start);
@@ -111,12 +126,14 @@ int main() {
         int costNNend = computeObjective(path1, distanceMatrix, nodes);
         int costNNflex = computeObjective(path2, distanceMatrix, nodes);
         int costGreedy = computeObjective(path3, distanceMatrix, nodes);
+
+        nnEndScores.push_back(costNNend);
+        nnFlexScores.push_back(costNNflex);
+        greedyScores.push_back(costGreedy);
+
         cout << "NN-End " << i << ": " << costNNend << "\n";
-        //printPath(path1);
         cout << "NN-Flex " << i << ": " << costNNflex << "\n";
-        //printPath(path2);
         cout << "Greedy " << i << ": " << costGreedy << "\n";
-        //printPath(path3);
         cout << "------------\n";
         i++;
         if (bestScoreNNend == -1) {bestScoreNNend = costNNend; bestPath1 = path1;}
@@ -128,6 +145,7 @@ int main() {
         if (bestScoreGreedy == -1) {bestScoreGreedy = costGreedy; bestPath3 = path3;}
         else if (costGreedy < bestScoreGreedy && bestScoreGreedy != -1) {bestScoreGreedy = costGreedy; bestPath3 = path3;}
     }
+
     cout << "Best NN-End: " << bestScoreNNend << "\n";
     cout << "Best Path: " << "\n";
     printPath(bestPath1);
@@ -138,9 +156,53 @@ int main() {
     cout << "Best Path: " << "\n";
     printPath(bestPath3);
 
-    saveResults("visualization/"+ tsp_type +"_paths.csv", nodes, bestPath1, "Nearest Neighbor");
-    saveResults("visualization/"+ tsp_type +"_paths.csv", nodes, bestPath2, "Nearest Neighbor Flexible");
-    saveResults("visualization/"+ tsp_type +"_paths.csv", nodes, bestPath3, "Greedy Cycle");
+    printStats("Random Search", randScores);
+    printStats("Nearest Neighbor End", nnEndScores);
+    printStats("Nearest Neighbor Flexible", nnFlexScores);
+    printStats("Greedy Cycle", greedyScores);
+
+    // Save data for visualisation
+    saveResults("visualization/" + tsp_type + "_paths.csv", nodes, bestPath1, "Nearest Neighbor");
+    saveResults("visualization/" + tsp_type + "_paths.csv", nodes, bestPath2, "Nearest Neighbor Flexible");
+    saveResults("visualization/" + tsp_type + "_paths.csv", nodes, bestPath3, "Greedy Cycle");
+
+    // Save the avg(min,max) values int .tex format
+    string texFile = "visualization/" + tsp_type + "_results_table.tex";
+    ofstream texOut(texFile);
+    if (!texOut.is_open()) {
+        cerr << "Error: could not create LaTeX file: " << texFile << endl;
+        return 1;
+    }
+
+    texOut << "\\begin{table}[h!]\n"
+           << "\\centering\n"
+           << "\\begin{tabular}{lc}\n"
+           << "\\hline\n"
+           << "Method & Avg (Min, Max) \\\\\n"
+           << "\\hline\n";
+
+    auto writeRowCompact = [&](const string& name, const vector<int>& values) {
+        if (values.empty()) return;
+        int minVal = *min_element(values.begin(), values.end());
+        int maxVal = *max_element(values.begin(), values.end());
+        double avgVal = accumulate(values.begin(), values.end(), 0.0) / values.size();
+        texOut << fixed << setprecision(2);
+        texOut << name << " & " << avgVal << " (" << minVal << ", " << maxVal << ") \\\\\n";
+    };
+
+    writeRowCompact("Random Search", randScores);
+    writeRowCompact("Nearest Neighbor End", nnEndScores);
+    writeRowCompact("Nearest Neighbor Flexible", nnFlexScores);
+    writeRowCompact("Greedy Cycle", greedyScores);
+
+    texOut << "\\hline\n"
+           << "\\end{tabular}\n"
+           << "\\caption{Average, minimum, and maximum objective values for " << tsp_type << "}\n"
+           << "\\label{tab:" << tsp_type << "_results}\n"
+           << "\\end{table}\n";
+    texOut.close();
+
+    cout << "\nLaTeX table saved to: " << texFile << endl;
 
     return 0;
 }
