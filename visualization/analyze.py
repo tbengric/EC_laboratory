@@ -48,6 +48,6 @@ def plot_and_save_individual(paths, tsp_type):
         print(f"Saved plot: {tsp_type+filename}")
 
 if __name__ == "__main__":
-    tsp_type = "TSPA"
+    tsp_type = "TSPB"
     paths = read_paths_with_cost("visualization/" + tsp_type+"_paths.csv")
     plot_and_save_individual(paths, tsp_type)
