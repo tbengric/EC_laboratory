@@ -50,9 +50,9 @@ auto printStats = [](const string& name, const vector<int>& values) {
 };
 
 int main() {
-    string filename = "TSPB.csv"; // your CSV file
+    string filename = "TSPB.csv"; 
     string tsp_type = "TSPB";
-    char delimiter = ';';         // assuming semicolon-separated CSV
+    char delimiter = ';';         
 
     vector<int> x, y, costs;
 
@@ -81,6 +81,7 @@ int main() {
     vector<Node> nodes;
     for (size_t i = 0; i < x.size(); ++i) {
         Node node;
+        node.id = i;
         node.x = x[i];
         node.y = y[i];
         node.cost = costs[i];
@@ -98,11 +99,10 @@ int main() {
     int bestRandScore = -1;
     vector<int> randScores;
 
-    for (int i = 0; i < 200; ++i) {
+    for (int i = 0; i < 200; i++) {
         auto randPath = randomSolution(selectedNodes);
         int score = computeObjective(randPath, distanceMatrix, nodes);
         randScores.push_back(score);
-        cout << "Random " << i << ": " << score << "\n";
 
         if (bestRandScore == -1 || score < bestRandScore) {
             bestRandScore = score;
@@ -119,10 +119,19 @@ int main() {
     vector<int> bestPath1, bestPath2, bestPath3;
     vector<int> nnEndScores, nnFlexScores, greedyScores;
 
-    for (int start : selectedNodes) {
-        auto path1 = nearestNeighborEnd(selectedNodes, distanceMatrix, nodes, start);
-        auto path2 = nearestNeighborFlexible(selectedNodes, distanceMatrix, nodes, start);
-        auto path3 = greedyCycle(selectedNodes, distanceMatrix, nodes, start);
+
+    for (int id_starting_node = 0; id_starting_node <100; id_starting_node++) {
+        cout << id_starting_node << endl;
+
+        auto path1 = nearestNeighborEnd(distanceMatrix, nodes, id_starting_node);
+        auto path2 = nearestNeighborFlexible(distanceMatrix, nodes, id_starting_node);
+        auto path3 = greedyCycle(distanceMatrix, nodes, id_starting_node);
+
+        // cout<<"START"<<endl;
+        // printPath(path1);
+        // printPath(path2);
+        // printPath(path3);
+
         int costNNend = computeObjective(path1, distanceMatrix, nodes);
         int costNNflex = computeObjective(path2, distanceMatrix, nodes);
         int costGreedy = computeObjective(path3, distanceMatrix, nodes);
@@ -131,11 +140,6 @@ int main() {
         nnFlexScores.push_back(costNNflex);
         greedyScores.push_back(costGreedy);
 
-        cout << "NN-End " << i << ": " << costNNend << "\n";
-        cout << "NN-Flex " << i << ": " << costNNflex << "\n";
-        cout << "Greedy " << i << ": " << costGreedy << "\n";
-        cout << "------------\n";
-        i++;
         if (bestScoreNNend == -1) {bestScoreNNend = costNNend; bestPath1 = path1;}
         else if (costNNend < bestScoreNNend && bestScoreNNend != -1) {bestScoreNNend = costNNend; bestPath1 = path1;}
 
@@ -166,6 +170,7 @@ int main() {
     saveResults("visualization/" + tsp_type + "_paths.csv", nodes, bestPath2, "Nearest Neighbor Flexible");
     saveResults("visualization/" + tsp_type + "_paths.csv", nodes, bestPath3, "Greedy Cycle");
 
+    
     // Save the avg(min,max) values int .tex format
     string texFile = "visualization/" + tsp_type + "_results_table.tex";
     ofstream texOut(texFile);
@@ -203,6 +208,6 @@ int main() {
     texOut.close();
 
     cout << "\nLaTeX table saved to: " << texFile << endl;
-
+    
     return 0;
 }

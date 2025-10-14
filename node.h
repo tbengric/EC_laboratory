@@ -1,5 +1,5 @@
 #pragma once
 struct Node {
-    int x, y, cost;
+    int id, x, y, cost;
 };
 
