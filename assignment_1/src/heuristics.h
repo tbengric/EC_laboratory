@@ -109,7 +109,7 @@ vector<int> nearestNeighborFlexible(const vector<vector<int>>& dist,
         path.insert(path.begin() + bestPos, bestNode);
         visited[bestNode] = true;
     }
-    path.push_back(startNodeId);
+    path.push_back(path[0]);
     return path;
 }
 
@@ -140,7 +140,7 @@ vector<int> greedyCycle(const vector<vector<int>>& dist,
 
 
     //iteratively insert remaining nodes
-    while (path.size() < static_cast<size_t>(numToSelect)) {
+    while (path.size() < static_cast<size_t>(numToSelect+1)) {
         int bestNode = -1;
         int bestPos = -1;
         int bestScore = numeric_limits<int>::max();
