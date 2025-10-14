@@ -15,12 +15,12 @@ vector<int> selectNodes(int totalNodes) {
     vector<int> indices(totalNodes);
     iota(indices.begin(), indices.end(), 0);
 
-    mt19937 rng(42); // fixed seed
-    shuffle(indices.begin(), indices.end(), rng);
+    shuffle(indices.begin(), indices.end(), mt19937{random_device{}()});
     indices.resize(k);
     return indices;
 }
 
+// Objective Function
 // Objective Function
 int computeObjective(const vector<int>& path,
                      const vector<vector<int>>& dist,
@@ -28,18 +28,20 @@ int computeObjective(const vector<int>& path,
     int totalDist = 0;
     int totalCost = 0;
 
-    for (size_t i = 0; i < path.size(); ++i) {
+    for (size_t i = 0; i < path.size()-1; i++) {
         totalCost += nodes[path[i]].cost;
-        totalDist += dist[path[i]][path[(i + 1) % path.size()]];
+        totalDist += dist[path[i]][path[(i + 1)]];
     }
 
     return totalDist + totalCost;
 }
 
+
 // Random Solution
 vector<int> randomSolution(const vector<int>& selectedNodes) {
     vector<int> path = selectedNodes;
     shuffle(path.begin(), path.end(), mt19937{random_device{}()});
+    path.push_back(path[0]);
     return path;
 }
 
@@ -61,11 +63,6 @@ vector<int> nearestNeighborEnd(const vector<vector<int>>& dist,
 
             int score = dist[path.back()][node.id] + node.cost;
 
-            // Add return-to-start cost near the end
-            if (path.size() == static_cast<size_t>(maxSize) - 2) {
-                score += dist[node.id][startNodeId];
-            }
-
             if (score < bestScore) {
                 bestScore = score;
                 bestNode = node.id;
@@ -75,7 +72,7 @@ vector<int> nearestNeighborEnd(const vector<vector<int>>& dist,
         path.push_back(bestNode);
         visited[bestNode] = true;
     }
-
+    path.push_back(startNodeId);
     return path;
 }
 
@@ -112,7 +109,7 @@ vector<int> nearestNeighborFlexible(const vector<vector<int>>& dist,
         path.insert(path.begin() + bestPos, bestNode);
         visited[bestNode] = true;
     }
-
+    path.push_back(startNodeId);
     return path;
 }
 
@@ -130,7 +127,7 @@ vector<int> greedyCycle(const vector<vector<int>>& dist,
     int bestInitialScore = numeric_limits<int>::max();
     for (const Node& node : nodes) {
         if (visited[node.id]) continue;
-        int score = 2 * dist[startNodeId][node.id] + nodes[startNodeId].cost + node.cost;
+        int score = dist[startNodeId][node.id] + nodes[startNodeId].cost + node.cost;
         if (score < bestInitialScore) {
             bestInitialScore = score;
             bestSecondNode = node.id;
@@ -139,6 +136,8 @@ vector<int> greedyCycle(const vector<vector<int>>& dist,
 
     path.push_back(bestSecondNode);
     visited[bestSecondNode] = true;
+    path.push_back(startNodeId);
+
 
     //iteratively insert remaining nodes
     while (path.size() < static_cast<size_t>(numToSelect)) {
@@ -149,15 +148,15 @@ vector<int> greedyCycle(const vector<vector<int>>& dist,
         for (const Node& node : nodes) {
             if (visited[node.id]) continue;
 
-            for (size_t i = 0; i < path.size(); ++i) {
-                int prev = path[i];
-                int next = path[(i + 1) % path.size()];
-                int score = dist[prev][node.id] + dist[node.id][next] - dist[prev][next] + node.cost;
+            for (size_t i = 0; i < path.size() -1; ++i) {
+                vector<int> tempPath = path;
+                tempPath.insert(tempPath.begin() + i, node.id);
+                int score = computeObjective(tempPath, dist, nodes);
 
                 if (score < bestScore) {
                     bestScore = score;
                     bestNode = node.id;
-                    bestPos = i + 1;
+                    bestPos = i;
                 }
             }
         }

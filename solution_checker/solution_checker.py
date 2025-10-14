@@ -8,8 +8,8 @@ for tsp_type in ["TSPA", "TSPB"]:
     df_path = df[pd.notna(df["List of nodes"])]
     path_list = df_path["List of nodes"].astype(int).tolist()
 
-    print("Path from solution checker:", path_list[:-1])
+    print("Path from solution checker:", path_list)
 
     with open(f"solution_checker/selected_nodes/{tsp_type}.txt", "w") as f:
-        for node in path_list[:-1]:
+        for node in path_list:
             f.write(f"{node}\n")

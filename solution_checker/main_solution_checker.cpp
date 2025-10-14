@@ -3,36 +3,47 @@
 #include <sstream>
 #include <vector>
 #include <string>
-#include "node.h"
-#include "distance_matrix.h"
-#include "heuristics.h"
 #include <iomanip> 
+#include <algorithm>
+#include <numeric>
+#include <limits>
+#include <random>
+#include <cmath>
 
 using namespace std;
 
-void saveResults(const string& filename,
-                 const vector<Node>& nodes,
-                 const vector<int>& path,
-                 const string& label) {
-    ofstream out(filename, ios::app); // append mode
-    if (!out.is_open()) {
-        cerr << "Error: could not open " << filename << endl;
-        return;
+
+// Structure of the node
+struct Node {
+    int id, x, y, cost;
+};
+
+// Objective Function
+int computeObjective(const vector<int>& path,
+                     const vector<vector<int>>& dist,
+                     const vector<Node>& nodes) {
+    int totalDist = 0;
+    int totalCost = 0;
+
+    for (size_t i = 0; i < path.size()-1; i++) {
+        totalCost += nodes[path[i]].cost;
+        totalDist += dist[path[i]][path[(i + 1)]];
     }
-    out << label << "\n";
-    out << "x,y,cost\n"; // header for cost
-    for (int idx : path) {
-        out << nodes[idx].x << "," << nodes[idx].y << "," << nodes[idx].cost << "\n";
-    }
-    out << "\n";
-    out.close();
+
+    return totalDist + totalCost;
 }
 
-void printPath(const vector<int>& path) {
-    for (int node : path) {
-        cout << node << " ";
-    }
-    cout << endl;
+//Distance Matrix
+vector<vector<int>> DistanceMatrix(const vector<Node>& nodes) {
+    int n = nodes.size();
+    vector<vector<int>> dist(n, vector<int>(n));
+    for (int i = 0; i < n; ++i)
+        for (int j = 0; j < n; ++j) {
+            double dx = nodes[i].x - nodes[j].x;
+            double dy = nodes[i].y - nodes[j].y;
+            dist[i][j] = static_cast<int>(round(sqrt(dx * dx + dy * dy)));
+        }
+    return dist;
 }
 
 int main() {
@@ -41,7 +52,7 @@ int main() {
     for (const string& id : instances) {
         cout << "\n=== Processing TSP" << id << " ===\n";
 
-        string csvFile = "TSP" + id + ".csv";
+        string csvFile = "data/TSP" + id + ".csv";
         string nodeFilePath = "solution_checker/selected_nodes/TSP" + id + ".txt";
 
         // Open CSV
@@ -92,9 +103,6 @@ int main() {
             selectedNodes.push_back(node);
         }
         nodeFile.close();
-
-        cout << "Selected nodes: ";
-        printPath(selectedNodes);
 
         int score = computeObjective(selectedNodes, distanceMatrix, nodes);
 
