@@ -109,8 +109,9 @@ int main() {
         int bestScoreNNend = -1;
         int bestScoreNNflex = -1;
         int bestScoreGreedy = -1;
-        vector<int> bestPath1, bestPath2, bestPath3;
-        vector<int> nnEndScores, nnFlexScores, greedyScores;
+        int bestScoreGreedy2 = -1;
+        vector<int> bestPath1, bestPath2, bestPath3, bestPath4;
+        vector<int> nnEndScores, nnFlexScores, greedyScores, greedy2Scores;
 
         for (int id_starting_node = 0; id_starting_node < 200; id_starting_node++) {
             cout <<"Starting from node: " << id_starting_node << endl;
@@ -118,14 +119,17 @@ int main() {
             auto path1 = nearestNeighborEnd(distanceMatrix, nodes, id_starting_node);
             auto path2 = nearestNeighborFlexible(distanceMatrix, nodes, id_starting_node);
             auto path3 = greedyCycle(distanceMatrix, nodes, id_starting_node);
+            auto path4 = greedyCycle2Regret(distanceMatrix, nodes, id_starting_node);
 
             int costNNend = computeObjective(path1, distanceMatrix, nodes);
             int costNNflex = computeObjective(path2, distanceMatrix, nodes);
             int costGreedy = computeObjective(path3, distanceMatrix, nodes);
+            int costGreedy2 = computeObjective(path4, distanceMatrix, nodes);
 
             nnEndScores.push_back(costNNend);
             nnFlexScores.push_back(costNNflex);
             greedyScores.push_back(costGreedy);
+            greedy2Scores.push_back(costGreedy2);
 
             if (bestScoreNNend == -1) {bestScoreNNend = costNNend; bestPath1 = path1;}
             else if (costNNend < bestScoreNNend && bestScoreNNend != -1) {bestScoreNNend = costNNend; bestPath1 = path1;}
@@ -135,17 +139,20 @@ int main() {
 
             if (bestScoreGreedy == -1) {bestScoreGreedy = costGreedy; bestPath3 = path3;}
             else if (costGreedy < bestScoreGreedy && bestScoreGreedy != -1) {bestScoreGreedy = costGreedy; bestPath3 = path3;}
-
+            
+            if (bestScoreGreedy2 == -1) {bestScoreGreedy2 = costGreedy2; bestPath4 = path4;}
+            else if (costGreedy2 < bestScoreGreedy2 && bestScoreGreedy2 != -1) {bestScoreGreedy2 = costGreedy2; bestPath4 = path4;}
         }
 
         // --- Save results for visualization ---
-        saveResults("assignment_1/visualization/" + tsp_type + "_paths.csv", nodes, bestRandPath, "Random Search");
-        saveResults("assignment_1/visualization/" + tsp_type + "_paths.csv", nodes, bestPath1, "Nearest Neighbor");
-        saveResults("assignment_1/visualization/" + tsp_type + "_paths.csv", nodes, bestPath2, "Nearest Neighbor Flexible");
-        saveResults("assignment_1/visualization/" + tsp_type + "_paths.csv", nodes, bestPath3, "Greedy Cycle");
+        saveResults("../visualization/" + tsp_type + "_paths.csv", nodes, bestRandPath, "Random Search");
+        saveResults("../visualization/" + tsp_type + "_paths.csv", nodes, bestPath1, "Nearest Neighbor");
+        saveResults("../visualization/" + tsp_type + "_paths.csv", nodes, bestPath2, "Nearest Neighbor Flexible");
+        saveResults("../visualization/" + tsp_type + "_paths.csv", nodes, bestPath3, "Greedy Cycle");
+        saveResults("../visualization/" + tsp_type + "_paths.csv", nodes, bestPath4, "Greedy Cycle 2-Regret");
 
         // --- Save LaTeX table with results ---
-        string texFile = "assignment_1/results/" + tsp_type + "_results_table.tex";
+        string texFile = "../results/" + tsp_type + "_results_table.tex";
         ofstream texOut(texFile);
         if (!texOut.is_open()) {
             cerr << "Error: could not create LaTeX file: " << texFile << endl;
@@ -171,6 +178,7 @@ int main() {
         writeRowCompact("Nearest Neighbor End", nnEndScores);
         writeRowCompact("Nearest Neighbor Flexible", nnFlexScores);
         writeRowCompact("Greedy Cycle", greedyScores);
+        writeRowCompact("Greedy Cycle 2-Regret", greedy2Scores);
 
         texOut << "\\hline\n"
                << "\\end{tabular}\n"
