@@ -49,7 +49,7 @@ int main() {
         cout << "==============================" << endl;
 
         // Read the nodes from .CSV file
-        string filename = "data/" + tsp_type + ".csv";
+        string filename = "../../data/" + tsp_type + ".csv";
         char delimiter = ';';
 
         vector<int> x, y, costs;
