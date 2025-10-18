@@ -167,3 +167,72 @@ vector<int> greedyCycle(const vector<vector<int>>& dist,
 
     return path;
 }
+
+
+// Greedy Cycle 2-regret Heuristic
+vector<int> greedyCycle2Regret(const vector<vector<int>>& dist,
+                                const vector<Node>& nodes,
+                                int startNodeId) {
+    vector<int> path = { startNodeId };
+    int numToSelect = nodes.size() / 2;
+    vector<bool> visited(nodes.size(), false);
+    visited[startNodeId] = true;
+
+    int bestSecondNode = -1;
+    int bestInitialDist = numeric_limits<int>::max();
+    for (const Node& node : nodes) {
+        if (visited[node.id]) continue;
+        if (dist[startNodeId][node.id] < bestInitialDist) {
+            bestInitialDist = dist[startNodeId][node.id];
+            bestSecondNode = node.id;
+        }
+    }
+    path.push_back(bestSecondNode);
+    visited[bestSecondNode] = true;
+    path.push_back(startNodeId);
+
+    while (path.size() < static_cast<size_t>(numToSelect + 1)) {
+        int bestNodeToInsert = -1;
+        int bestPosition = -1;
+        double maxRegret = -1.0;
+
+        for (const Node& node : nodes) {
+            if (visited[node.id]) continue;
+            
+            int k = node.id;
+            int BestCost = numeric_limits<int>::max();
+            int SecondBestCost = numeric_limits<int>::max();
+            int PositionForBestCost = -1;
+
+            for (size_t i = 0; i < path.size() - 1; ++i) {
+                int u = path[i];
+                int v = path[i + 1];
+                
+                int insertionCost = dist[u][k] + dist[k][v] - dist[u][v];
+
+                if (insertionCost < BestCost) {
+                    SecondBestCost = BestCost;
+                    BestCost = insertionCost;
+                    PositionForBestCost = i + 1;
+                } else if (insertionCost < SecondBestCost) {
+                    SecondBestCost = insertionCost;
+                }
+            }
+
+            double regret = SecondBestCost - BestCost;
+
+            if (regret > maxRegret) {
+                maxRegret = regret;
+                bestNodeToInsert = k;
+                bestPosition = PositionForBestCost;
+            }
+        }
+
+        if (bestNodeToInsert == -1) break; 
+        
+        path.insert(path.begin() + bestPosition, bestNodeToInsert);
+        visited[bestNodeToInsert] = true;
+    }
+
+    return path;
+}
