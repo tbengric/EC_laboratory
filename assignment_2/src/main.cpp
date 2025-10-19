@@ -147,9 +147,9 @@ int main() {
             auto path2 = nearestNeighborFlexible(distanceMatrix, nodes, id_starting_node);
             auto path3 = greedyCycle(distanceMatrix, nodes, id_starting_node);
             auto path4 = greedyCycle2Regret(distanceMatrix, nodes, id_starting_node);
-            auto path5 = greedyCycle2RegretWeightes(distanceMatrix, nodes, id_starting_node, 0.5);
+            auto path5 = greedyCycle2RegretWeights(distanceMatrix, nodes, id_starting_node, 0.3, 0.7);
             auto path6 = nearestNeighborFlexibleWith2Regret(distanceMatrix, nodes, id_starting_node);
-            auto path7 = nearestNeighborFlexibleWith2RegretWithWeight(distanceMatrix, nodes, id_starting_node, 0.5);
+            auto path7 = nearestNeighborFlexibleWith2RegretWithWeight(distanceMatrix, nodes, id_starting_node, 0.3, 0.7);
 
 
             int costNNend = computeObjective(path1, distanceMatrix, nodes);
