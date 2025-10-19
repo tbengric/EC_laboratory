@@ -489,7 +489,7 @@ vector<int> greedyCycleKRegretWeighted(
             }
 
             // Weighted sum
-            double weightedScore = regretWeight * regret - deltaWeight * insertionCosts[0].first;
+            double weightedScore = weight_regret * regret - weight_objective * insertionCosts[0].first;
 
             if (weightedScore > bestWeightedScore) {
                 bestWeightedScore = weightedScore;
@@ -553,7 +553,7 @@ vector<int> nearestNeighborKRegretWeighted(
             }
 
             // Weighted sum
-            double weightedScore = regretWeight * regret + deltaWeight * insertionCosts[0].first;
+            double weightedScore = weight_regret * regret + weight_objective * insertionCosts[0].first;
 
             if (weightedScore > bestWeightedScore) {
                 bestWeightedScore = weightedScore;
