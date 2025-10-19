@@ -290,7 +290,7 @@ vector<int> greedyCycle2RegretWeightes(const vector<vector<int>>& dist,
             }
 
             double regret = SecondBestCost - BestCost;
-            double weighet_objective = 0.5*regret + 0.5*delta_objective;
+            double weighet_objective = weight*regret + weight*delta_objective;
 
             if (weighet_objective > maxWeightedObjective) {
                 maxWeightedObjective = weighet_objective;
@@ -406,7 +406,7 @@ vector<int> nearestNeighborFlexibleWith2RegretWithWeight(const vector<vector<int
             }
 
             double regret = SecondBestCost - BestCost;
-            double weighet_objective = 0.5*regret + 0.5*delta_objective;
+            double weighet_objective = weight*regret + weight*delta_objective;
 
             if (weighet_objective > maxWeightedObjective) {
                 maxWeightedObjective = weighet_objective;
