@@ -238,7 +238,7 @@ vector<int> greedyCycleKRegretWeighted(
             }
         }
 
-        if (bestNode == -1){cout<<"HELLp"<<endl; break;}
+        if (bestNode == -1) break;
 
         path.insert(path.begin() + bestPos, bestNode);
         visited[bestNode] = true;
