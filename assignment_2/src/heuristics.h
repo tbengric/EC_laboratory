@@ -221,7 +221,6 @@ vector<int> greedyCycleKRegretWeighted(
                 return a.first < b.first;
             });
 
-
             // k-regret 
             double regret = 0.0;
             int count = kRegret - 1;
@@ -293,21 +292,18 @@ vector<int> nearestNeighborKRegretWeighted(
                 insertionCosts.push_back({cost, i + 1}); // store insertion index
                 
             }
-            // cout<<endl<<"Node:"<<node.id<<endl;
-            // for (auto info : insertionCosts){
-            //     cout<<info.first<<" ";
-            // }
-            // Sort insertion costs ascending
+
             sort(insertionCosts.begin(), insertionCosts.end(),
                  [](const auto &a, const auto &b){ return a.first < b.first; });
 
-            // kReget
+            // k-regret 
             double regret = 0.0;
-            int limit = kRegret - 1;
-            for (int j = 1; j <= limit; ++j) {
+            int count = kRegret - 1;
+            for (int j = 1; j <= count; ++j) {
                 regret += insertionCosts[j].first - insertionCosts[0].first;
             }
 
+            // Weighted sum
             double weightedScore = weight_regret * regret - weight_objective * insertionCosts[0].first;
 
             if (weightedScore > bestWeightedScore) {
