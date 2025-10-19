@@ -235,10 +235,11 @@ vector<int> greedyCycle2Regret(const vector<vector<int>>& dist,
 }
 
 // Greedy Cycle 2-regret with weighted sum
-vector<int> greedyCycle2RegretWeightes(const vector<vector<int>>& dist,
+vector<int> greedyCycle2RegretWeights(const vector<vector<int>>& dist,
                                 const vector<Node>& nodes,
                                 int startNodeId,
-                                float weight = 0.5) {
+                                float regretWeight = 0.3,
+                                float deltaWeight = 0.7) {
     vector<int> path = { startNodeId };
     int numToSelect = nodes.size() / 2;
     vector<bool> visited(nodes.size(), false);
@@ -262,7 +263,7 @@ vector<int> greedyCycle2RegretWeightes(const vector<vector<int>>& dist,
     while (path.size() < static_cast<size_t>(numToSelect + 1)) {
         int bestNodeToInsert = -1;
         int bestPosition = -1;
-        double maxWeightedObjective = -1.0;
+        double maxWeightedObjective = -numeric_limits<int>::max();
 
         for (const Node& node : nodes) {
             if (visited[node.id]) continue;
@@ -290,7 +291,7 @@ vector<int> greedyCycle2RegretWeightes(const vector<vector<int>>& dist,
             }
 
             double regret = SecondBestCost - BestCost;
-            double weighet_objective = weight*regret + weight*delta_objective;
+            double weighet_objective = regretWeight*regret + deltaWeight*delta_objective;
 
             if (weighet_objective > maxWeightedObjective) {
                 maxWeightedObjective = weighet_objective;
@@ -368,7 +369,8 @@ vector<int> nearestNeighborFlexibleWith2Regret(const vector<vector<int>>& dist,
 vector<int> nearestNeighborFlexibleWith2RegretWithWeight(const vector<vector<int>>& dist,
                                     const vector<Node>& nodes,
                                     int startNodeId,
-                                    float weight = 0.5) {
+                                    float regretWeight = 0.3,
+                                    float deltaWeight = 0.7) {
     vector<int> path = { startNodeId };
     int maxSize = nodes.size() / 2;
     vector<bool> visited(nodes.size(), false);
@@ -377,7 +379,7 @@ vector<int> nearestNeighborFlexibleWith2RegretWithWeight(const vector<vector<int
     while (path.size() < static_cast<size_t>(maxSize)) {
         int bestNodeToInsert = -1;
         int bestPosition = -1;
-        double maxWeightedObjective = -1.0;
+        double maxWeightedObjective = -numeric_limits<int>::max();
 
         for (const Node& node : nodes) {
             if (visited[node.id]) continue;
@@ -406,7 +408,7 @@ vector<int> nearestNeighborFlexibleWith2RegretWithWeight(const vector<vector<int
             }
 
             double regret = SecondBestCost - BestCost;
-            double weighet_objective = weight*regret + weight*delta_objective;
+            double weighet_objective = regretWeight*regret + deltaWeight*delta_objective;
 
             if (weighet_objective > maxWeightedObjective) {
                 maxWeightedObjective = weighet_objective;
@@ -430,7 +432,12 @@ vector<int> greedyCycleKRegretWeighted(
     const vector<Node>& nodes,
     int startNodeId,
     int kRegret = 2,
+<<<<<<< HEAD
     double weight_regret = 0.5
+=======
+    float regretWeight = 0.3,
+    float deltaWeight = 0.7
+>>>>>>> 8b0b38339a68ad97ba7497f43ebd0da5cad20a11
 ) {
     double weight_objective = 1.0 - weight_regret;
     vector<int> path = { startNodeId };
@@ -487,7 +494,7 @@ vector<int> greedyCycleKRegretWeighted(
             }
 
             // Weighted sum
-            double weightedScore = weight_regret * regret - weight_objective * insertionCosts[0].first;
+            double weightedScore = regretWeight * regret - deltaWeight * insertionCosts[0].first;
 
             if (weightedScore > bestWeightedScore) {
                 bestWeightedScore = weightedScore;
@@ -511,7 +518,12 @@ vector<int> nearestNeighborKRegretWeighted(
     const vector<Node>& nodes,
     int startNodeId,
     int kRegret = 2,
+<<<<<<< HEAD
     double weight_regret = 0.5
+=======
+    float regretWeight = 0.3,
+    float deltaWeight = 0.7
+>>>>>>> 8b0b38339a68ad97ba7497f43ebd0da5cad20a11
 ) {
     double weight_objective = 1.0 - weight_regret;
     vector<int> path = { startNodeId };
@@ -551,7 +563,7 @@ vector<int> nearestNeighborKRegretWeighted(
             }
 
             // Weighted sum
-            double weightedScore = weight_regret * regret + weight_objective * insertionCosts[0].first;
+            double weightedScore = regretWeight * regret + deltaWeight * insertionCosts[0].first;
 
             if (weightedScore > bestWeightedScore) {
                 bestWeightedScore = weightedScore;

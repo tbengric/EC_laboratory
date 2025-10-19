@@ -150,6 +150,13 @@ int main() {
             auto path1 = nearestNeighborEnd(distanceMatrix, nodes, id_starting_node);
             auto path2 = nearestNeighborFlexible(distanceMatrix, nodes, id_starting_node);
             auto path3 = greedyCycle(distanceMatrix, nodes, id_starting_node);
+<<<<<<< HEAD
+=======
+            auto path4 = greedyCycle2Regret(distanceMatrix, nodes, id_starting_node);
+            auto path5 = greedyCycle2RegretWeights(distanceMatrix, nodes, id_starting_node, 0.3, 0.7);
+            auto path6 = nearestNeighborFlexibleWith2Regret(distanceMatrix, nodes, id_starting_node);
+            auto path7 = nearestNeighborFlexibleWith2RegretWithWeight(distanceMatrix, nodes, id_starting_node, 0.3, 0.7);
+>>>>>>> 8b0b38339a68ad97ba7497f43ebd0da5cad20a11
 
             auto path_Greedy1 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 1.0);
             auto path_Greedy2 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 3, 1.0);
