@@ -35,7 +35,6 @@ int computeObjective(const vector<int>& path,
     return totalDist + totalCost;
 }
 
-
 // Random Solution
 vector<int> randomSolution(const vector<int>& selectedNodes) {
     vector<int> path = selectedNodes;
@@ -112,7 +111,7 @@ vector<int> nearestNeighborFlexible(const vector<vector<int>>& dist,
     return path;
 }
 
-// Greedy Cycle Heuristic
+// Greedy Cycle
 vector<int> greedyCycle(const vector<vector<int>>& dist,
                         const vector<Node>& nodes,
                         int startNodeId) {
@@ -121,11 +120,12 @@ vector<int> greedyCycle(const vector<vector<int>>& dist,
     vector<bool> visited(nodes.size(), false);
     visited[startNodeId] = true;
 
+    //select the best second node to form initial 2-node cycle
     int bestSecondNode = -1;
     int bestInitialScore = numeric_limits<int>::max();
     for (const Node& node : nodes) {
         if (visited[node.id]) continue;
-        int score = dist[startNodeId][node.id] + nodes[startNodeId].cost + node.cost;
+        int score = 2*dist[startNodeId][node.id] + nodes[startNodeId].cost + node.cost;
         if (score < bestInitialScore) {
             bestInitialScore = score;
             bestSecondNode = node.id;
@@ -136,6 +136,8 @@ vector<int> greedyCycle(const vector<vector<int>>& dist,
     visited[bestSecondNode] = true;
     path.push_back(startNodeId);
 
+
+    //iteratively insert remaining nodes
     while (path.size() < static_cast<size_t>(numToSelect+1)) {
         int bestNode = -1;
         int bestPos = -1;
@@ -144,7 +146,8 @@ vector<int> greedyCycle(const vector<vector<int>>& dist,
         for (const Node& node : nodes) {
             if (visited[node.id]) continue;
 
-            for (size_t i = 0; i < path.size() -1; ++i) {
+            for (size_t i = 1; i < path.size() ; ++i) { // a-> b -> c -> d -> a
+                
                 vector<int> tempPath = path;
                 tempPath.insert(tempPath.begin() + i, node.id);
                 int score = computeObjective(tempPath, dist, nodes);
@@ -164,277 +167,15 @@ vector<int> greedyCycle(const vector<vector<int>>& dist,
     return path;
 }
 
-// Greedy Cycle 2-regret Heuristic
-vector<int> greedyCycle2Regret(const vector<vector<int>>& dist,
-                                const vector<Node>& nodes,
-                                int startNodeId) {
-    vector<int> path = { startNodeId };
-    int numToSelect = nodes.size() / 2;
-    vector<bool> visited(nodes.size(), false);
-    visited[startNodeId] = true;
-
-    int bestSecondNode = -1;
-    int bestInitialScore = numeric_limits<int>::max();
-    for (const Node& node : nodes) {
-        if (visited[node.id]) continue;
-        int score = 2*dist[startNodeId][node.id] + nodes[startNodeId].cost + node.cost;
-        if (score < bestInitialScore) {
-            bestInitialScore = score;
-            bestSecondNode = node.id;
-        }
-    }
-
-    path.push_back(bestSecondNode);
-    visited[bestSecondNode] = true;
-    path.push_back(startNodeId);
-
-    while (path.size() < static_cast<size_t>(numToSelect + 1)) {
-        int bestNodeToInsert = -1;
-        int bestPosition = -1;
-        double maxRegret = -1.0;
-
-        for (const Node& node : nodes) {
-            if (visited[node.id]) continue;
-            
-            int k = node.id;
-            int BestCost = numeric_limits<int>::max();
-            int SecondBestCost = numeric_limits<int>::max();
-            int PositionForBestCost = -1;
-
-            for (size_t i = 0; i < path.size() -1; ++i) {// a-> b -> c -> d -> a  i<4
-                int u = path[i];
-                int v = path[i + 1];
-                
-                int insertionCost = dist[u][k] + dist[k][v] - dist[u][v] + node.cost; 
-
-                if (insertionCost < BestCost) {
-                    SecondBestCost = BestCost;
-                    BestCost = insertionCost;
-                    PositionForBestCost = i + 1;
-                } else if (insertionCost < SecondBestCost) {
-                    SecondBestCost = insertionCost;
-                }
-            }
-
-            double regret = SecondBestCost - BestCost;
-
-            if (regret > maxRegret) {
-                maxRegret = regret;
-                bestNodeToInsert = k;
-                bestPosition = PositionForBestCost;
-            }
-        }
-
-        if (bestNodeToInsert == -1) break; 
-        
-        path.insert(path.begin() + bestPosition, bestNodeToInsert);
-        visited[bestNodeToInsert] = true;
-    }
-
-    return path;
-}
-
-// Greedy Cycle 2-regret with weighted sum
-vector<int> greedyCycle2RegretWeights(const vector<vector<int>>& dist,
-                                const vector<Node>& nodes,
-                                int startNodeId,
-                                float regretWeight = 0.3,
-                                float deltaWeight = 0.7) {
-    vector<int> path = { startNodeId };
-    int numToSelect = nodes.size() / 2;
-    vector<bool> visited(nodes.size(), false);
-    visited[startNodeId] = true;
-
-    int bestSecondNode = -1;
-    int bestInitialScore = numeric_limits<int>::max();
-    for (const Node& node : nodes) {
-        if (visited[node.id]) continue;
-        int score = 2*dist[startNodeId][node.id] + nodes[startNodeId].cost + node.cost;
-        if (score < bestInitialScore) {
-            bestInitialScore = score;
-            bestSecondNode = node.id;
-        }
-    }
-
-    path.push_back(bestSecondNode);
-    visited[bestSecondNode] = true;
-    path.push_back(startNodeId);
-
-    while (path.size() < static_cast<size_t>(numToSelect + 1)) {
-        int bestNodeToInsert = -1;
-        int bestPosition = -1;
-        double maxWeightedObjective = -numeric_limits<int>::max();
-
-        for (const Node& node : nodes) {
-            if (visited[node.id]) continue;
-            
-            int k = node.id;
-            int BestCost = numeric_limits<int>::max();
-            int SecondBestCost = numeric_limits<int>::max();
-            int PositionForBestCost = -1;
-            double delta_objective = numeric_limits<int>::max();
-
-            for (size_t i = 0; i < path.size() -1; ++i) {// a-> b -> c -> d -> a  i<4
-                int u = path[i];
-                int v = path[i + 1];
-                
-                int insertionCost = dist[u][k] + dist[k][v] - dist[u][v] + node.cost; 
-                
-                if (insertionCost < BestCost) {
-                    SecondBestCost = BestCost;
-                    BestCost = insertionCost;
-                    PositionForBestCost = i + 1;
-                    delta_objective = insertionCost;
-                } else if (insertionCost < SecondBestCost) {
-                    SecondBestCost = insertionCost;
-                }
-            }
-
-            double regret = SecondBestCost - BestCost;
-            double weighet_objective = regretWeight*regret + deltaWeight*delta_objective;
-
-            if (weighet_objective > maxWeightedObjective) {
-                maxWeightedObjective = weighet_objective;
-                bestNodeToInsert = k;
-                bestPosition = PositionForBestCost;
-            }
-        }
-
-        if (bestNodeToInsert == -1) break; 
-        
-        path.insert(path.begin() + bestPosition, bestNodeToInsert);
-        visited[bestNodeToInsert] = true;
-    }
-
-    return path;
-}
-
-
-// Nearest Neighbor Heuristics (At any place) with 2Regret
-vector<int> nearestNeighborFlexibleWith2Regret(const vector<vector<int>>& dist,
-                                    const vector<Node>& nodes,
-                                    int startNodeId) {
-    vector<int> path = { startNodeId };
-    int maxSize = nodes.size() / 2;
-    vector<bool> visited(nodes.size(), false);
-    visited[startNodeId] = true;
-
-    while (path.size() < static_cast<size_t>(maxSize)) {
-        int bestNodeToInsert = -1;
-        int bestPosition = -1;
-        double maxRegret = -1.0;
-
-        for (const Node& node : nodes) {
-            if (visited[node.id]) continue;
-
-            int k = node.id;
-            int BestCost = numeric_limits<int>::max();
-            int SecondBestCost = numeric_limits<int>::max();
-            int PositionForBestCost = -1;
-
-            for (size_t i = 0; i < path.size(); ++i) { // a-> b -> c -> d  i<4
-                int u = path[i];
-                int v = path[(i + 1) % path.size()];
-
-                int insertionCost = dist[u][k] + dist[k][v] - dist[u][v] + node.cost; 
-
-                if (insertionCost < BestCost) {
-                    SecondBestCost = BestCost;
-                    BestCost = insertionCost;
-                    PositionForBestCost = i + 1;
-                } else if (insertionCost < SecondBestCost) {
-                    SecondBestCost = insertionCost;
-                }
-            }
-
-            double regret = SecondBestCost - BestCost;
-
-            if (regret > maxRegret) {
-                maxRegret = regret;
-                bestNodeToInsert = k;
-                bestPosition = PositionForBestCost;
-            }
-        }
-
-        if (bestNodeToInsert == -1) break; 
-
-        path.insert(path.begin() + bestPosition, bestNodeToInsert);
-        visited[bestNodeToInsert] = true;
-    }
-    path.push_back(path[0]);
-    return path;
-}
-
-// Nearest Neighbor Heuristics (At any place) with 2Regret with weighted sum
-vector<int> nearestNeighborFlexibleWith2RegretWithWeight(const vector<vector<int>>& dist,
-                                    const vector<Node>& nodes,
-                                    int startNodeId,
-                                    float regretWeight = 0.3,
-                                    float deltaWeight = 0.7) {
-    vector<int> path = { startNodeId };
-    int maxSize = nodes.size() / 2;
-    vector<bool> visited(nodes.size(), false);
-    visited[startNodeId] = true;
-
-    while (path.size() < static_cast<size_t>(maxSize)) {
-        int bestNodeToInsert = -1;
-        int bestPosition = -1;
-        double maxWeightedObjective = -numeric_limits<int>::max();
-
-        for (const Node& node : nodes) {
-            if (visited[node.id]) continue;
-
-            int k = node.id;
-            int BestCost = numeric_limits<int>::max();
-            int SecondBestCost = numeric_limits<int>::max();
-            int PositionForBestCost = -1;
-            double delta_objective = numeric_limits<int>::max();
-
-            for (size_t i = 0; i < path.size(); ++i) { // a-> b -> c -> d  i<4
-                int u = path[i];
-                int v = path[(i + 1) % path.size()];
-
-                int insertionCost = dist[u][k] + dist[k][v] - dist[u][v] + node.cost; 
-
-                if (insertionCost < BestCost) {
-                    SecondBestCost = BestCost;
-                    BestCost = insertionCost;
-                    PositionForBestCost = i + 1;
-                    delta_objective = insertionCost;
-
-                } else if (insertionCost < SecondBestCost) {
-                    SecondBestCost = insertionCost;
-                }
-            }
-
-            double regret = SecondBestCost - BestCost;
-            double weighet_objective = regretWeight*regret + deltaWeight*delta_objective;
-
-            if (weighet_objective > maxWeightedObjective) {
-                maxWeightedObjective = weighet_objective;
-                bestNodeToInsert = k;
-                bestPosition = PositionForBestCost;
-            }
-        }
-
-        if (bestNodeToInsert == -1) break; 
-
-        path.insert(path.begin() + bestPosition, bestNodeToInsert);
-        visited[bestNodeToInsert] = true;
-    }
-    path.push_back(path[0]);
-    return path;
-}
-
 
 vector<int> greedyCycleKRegretWeighted(
     const vector<vector<int>>& dist,
     const vector<Node>& nodes,
     int startNodeId,
     int kRegret = 2,
-    float regretWeight = 0.3,
-    float deltaWeight = 0.7
+    double weight_regret = 0.5
 ) {
+    double weight_objective = 1.0 - weight_regret;
     vector<int> path = { startNodeId };
     int numToSelect = nodes.size() / 2;
     vector<bool> visited(nodes.size(), false);
@@ -468,7 +209,7 @@ vector<int> greedyCycleKRegretWeighted(
             // List<total_cost, position_of_node>
             vector<pair<int,int>> insertionCosts;
 
-            for (size_t i = 0; i < path.size() - 1; ++i) {
+            for (size_t i = 0; i < path.size() - 1; ++i) { // a-> b -> c
                 int u = path[i];
                 int v = path[i + 1];
                 int cost = dist[u][node.id] + dist[node.id][v] - dist[u][v] + node.cost;
@@ -480,6 +221,80 @@ vector<int> greedyCycleKRegretWeighted(
                 return a.first < b.first;
             });
 
+            // k-regret 
+            double regret = 0.0;
+            int count = kRegret - 1;
+            for (int j = 1; j <= count; ++j) {
+                regret += insertionCosts[j].first - insertionCosts[0].first;
+            }
+
+            // Weighted sum
+            double weightedScore = weight_regret * regret - weight_objective * insertionCosts[0].first;
+
+            if (weightedScore > bestWeightedScore) {
+                bestWeightedScore = weightedScore;
+                bestNode = node.id;
+                bestPos = insertionCosts[0].second; // use position from the list
+            }
+        }
+
+        if (bestNode == -1){cout<<"HELLp"<<endl; break;}
+
+        path.insert(path.begin() + bestPos, bestNode);
+        visited[bestNode] = true;
+    }
+
+    return path;
+}
+
+vector<int> nearestNeighborKRegretWeighted(
+    const vector<vector<int>>& dist,
+    const vector<Node>& nodes,
+    int startNodeId,
+    int kRegret = 2,
+    double weight_regret = 0.5
+) {
+    double weight_objective = 1.0 - weight_regret;
+    vector<int> path = { startNodeId };
+    int maxSize = nodes.size() / 2;
+
+    vector<bool> visited(nodes.size(), false);
+    visited[startNodeId] = true;
+
+    while (path.size() < static_cast<size_t>(maxSize)) {
+        int bestNode = -1;
+        int bestPos = -1;
+        double bestWeightedScore = -numeric_limits<double>::infinity();
+
+        for (const Node& node : nodes) {
+            if (visited[node.id]) continue;
+
+            // Store all insertion costs and positions
+            vector<pair<int,int>> insertionCosts;
+
+            for (int i = -1; i < static_cast<int>(path.size()); ++i) {
+                int cost = 0;
+
+                if (i == -1) { // Insert at beginning
+                    int next = path.front();
+                    cost = dist[node.id][next] + node.cost;
+                } 
+                else if (i == static_cast<int>(path.size()) - 1) { // Insert at end
+                    int prev = path.back();
+                    cost = dist[prev][node.id] + node.cost;
+                } 
+                else { // Insert inside path
+                    int prev = path[i];
+                    int next = path[i + 1];
+                    cost = dist[prev][node.id] + dist[node.id][next] - dist[prev][next] + node.cost;
+                }
+
+                insertionCosts.push_back({cost, i + 1}); // store insertion index
+                
+            }
+
+            sort(insertionCosts.begin(), insertionCosts.end(),
+                 [](const auto &a, const auto &b){ return a.first < b.first; });
 
             // k-regret 
             double regret = 0.0;
@@ -489,76 +304,12 @@ vector<int> greedyCycleKRegretWeighted(
             }
 
             // Weighted sum
-            double weightedScore = regretWeight * regret - deltaWeight * insertionCosts[0].first;
+            double weightedScore = weight_regret * regret - weight_objective * insertionCosts[0].first;
 
             if (weightedScore > bestWeightedScore) {
                 bestWeightedScore = weightedScore;
                 bestNode = node.id;
-                bestPos = insertionCosts[0].second; // use position from the list
-            }
-        }
-
-        if (bestNode == -1){cout <<"HELLp"<< endl; break;}
-
-        path.insert(path.begin() + bestPos, bestNode);
-        visited[bestNode] = true;
-    }
-
-    return path;
-}
-
-
-vector<int> nearestNeighborKRegretWeighted(
-    const vector<vector<int>>& dist,
-    const vector<Node>& nodes,
-    int startNodeId,
-    int kRegret = 2,
-    float regretWeight = 0.3,
-    float deltaWeight = 0.7
-) {
-    vector<int> path = { startNodeId };
-    int maxSize = nodes.size() / 2;
-    vector<bool> visited(nodes.size(), false);
-    visited[startNodeId] = true;
-
-    // Iteratively insert remaining nodes
-    while (path.size() < static_cast<size_t>(maxSize)) {
-        int bestNode = -1;
-        int bestPos = -1;
-        double bestWeightedScore = -numeric_limits<int>::max();
-
-        for (const Node& node : nodes) {
-            if (visited[node.id]) continue;
-
-            // List<total_cost, position_of_node>
-            vector<pair<int,int>> insertionCosts;
-
-            for (size_t i = 0; i < path.size(); ++i) {
-                int u = path[i];
-                int v = path[(i + 1) % path.size()]; 
-                int cost = dist[u][node.id] + dist[node.id][v] - dist[u][v] + node.cost;
-                insertionCosts.push_back({cost, static_cast<int>(i + 1)});
-            }
-
-            // Sort by cost in the list
-            sort(insertionCosts.begin(), insertionCosts.end(), [](auto &a, auto &b){
-                return a.first > b.first;
-            });
-
-            // K-regret
-            double regret = 0.0;
-            int count = kRegret - 1;
-            for (int j = 1; j <= count; ++j) {
-                regret += insertionCosts[j].first - insertionCosts[0].first;
-            }
-
-            // Weighted sum
-            double weightedScore = regretWeight * regret + deltaWeight * insertionCosts[0].first;
-
-            if (weightedScore > bestWeightedScore) {
-                bestWeightedScore = weightedScore;
-                bestNode = node.id;
-                bestPos = insertionCosts[0].second; // use position from the list
+                bestPos = insertionCosts[0].second;
             }
         }
 
@@ -568,7 +319,6 @@ vector<int> nearestNeighborKRegretWeighted(
         visited[bestNode] = true;
     }
 
-    // Close cycle
     path.push_back(path[0]);
     return path;
 }
