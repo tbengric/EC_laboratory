@@ -15,6 +15,7 @@ using namespace std;
 namespace fs = std::filesystem;
 
 // --- Utility functions ---
+
 void delete_content_file(const string& filename) {
     fs::path filepath = filename;
     try {
@@ -66,7 +67,7 @@ int main() {
         cout << "==============================" << endl;
 
         // --- Read nodes from CSV ---
-        string filename = "../data/" + tsp_type + ".csv";
+        string filename = "../../data/" + tsp_type + ".csv";
         char delimiter = ';';
 
         vector<int> x, y, costs;
@@ -182,7 +183,7 @@ int main() {
         }
 
         // --- Save results for visualization ---
-        string visFile = "visualization/" + tsp_type + "_paths.csv";
+        string visFile = "../visualization/" + tsp_type + "_paths.csv";
         delete_content_file(visFile);
 
         saveResults(visFile, nodes, bestRandPath, "Random Search");
@@ -203,7 +204,7 @@ int main() {
         saveResults(visFile, nodes, bestPathNNflex2RegretWSum2, "NN-Flexible (2-Regret Weighted 0.7)");
 
         // --- Save LaTeX table ---
-        string texFile = "results/" + tsp_type + "_results_table.tex";
+        string texFile = "../results/" + tsp_type + "_results_table.tex";
         ofstream texOut(texFile);
         if (!texOut.is_open()) {
             cerr << "Error: could not create LaTeX file: " << texFile << endl;
