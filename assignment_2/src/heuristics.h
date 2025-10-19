@@ -209,7 +209,7 @@ vector<int> greedyCycleKRegretWeighted(
             // List<total_cost, position_of_node>
             vector<pair<int,int>> insertionCosts;
 
-            for (size_t i = 0; i < path.size() - 1; ++i) {
+            for (size_t i = 0; i < path.size() - 1; ++i) { // a-> b -> c
                 int u = path[i];
                 int v = path[i + 1];
                 int cost = dist[u][node.id] + dist[node.id][v] - dist[u][v] + node.cost;
@@ -248,7 +248,6 @@ vector<int> greedyCycleKRegretWeighted(
     return path;
 }
 
-
 vector<int> nearestNeighborKRegretWeighted(
     const vector<vector<int>>& dist,
     const vector<Node>& nodes,
@@ -259,47 +258,58 @@ vector<int> nearestNeighborKRegretWeighted(
     double weight_objective = 1.0 - weight_regret;
     vector<int> path = { startNodeId };
     int maxSize = nodes.size() / 2;
+
     vector<bool> visited(nodes.size(), false);
     visited[startNodeId] = true;
 
-    // Iteratively insert remaining nodes
     while (path.size() < static_cast<size_t>(maxSize)) {
         int bestNode = -1;
         int bestPos = -1;
-        double bestWeightedScore = -numeric_limits<int>::max();
+        double bestWeightedScore = -numeric_limits<double>::infinity();
 
         for (const Node& node : nodes) {
             if (visited[node.id]) continue;
 
-            // List<total_cost, position_of_node>
+            // Store all insertion costs and positions
             vector<pair<int,int>> insertionCosts;
 
-            for (size_t i = 0; i < path.size(); ++i) {
-                int u = path[i];
-                int v = path[(i + 1) % path.size()]; 
-                int cost = dist[u][node.id] + dist[node.id][v] - dist[u][v] + node.cost;
-                insertionCosts.push_back({cost, static_cast<int>(i + 1)});
+            for (int i = -1; i < static_cast<int>(path.size()); ++i) {
+                int cost = 0;
+
+                if (i == -1) { // Insert at beginning
+                    int next = path.front();
+                    cost = dist[node.id][next] + node.cost;
+                } 
+                else if (i == static_cast<int>(path.size()) - 1) { // Insert at end
+                    int prev = path.back();
+                    cost = dist[prev][node.id] + node.cost;
+                } 
+                else { // Insert inside path
+                    int prev = path[i];
+                    int next = path[i + 1];
+                    cost = dist[prev][node.id] + dist[node.id][next] - dist[prev][next] + node.cost;
+                }
+
+                insertionCosts.push_back({cost, i + 1}); // store insertion index
             }
 
-            // Sort by cost in the list
-            sort(insertionCosts.begin(), insertionCosts.end(), [](auto &a, auto &b){
-                return a.first > b.first;
-            });
+            // Sort insertion costs ascending
+            sort(insertionCosts.begin(), insertionCosts.end(),
+                 [](const auto &a, const auto &b){ return a.first < b.first; });
 
-            // K-regret
+            // Compute weighted k-regret safely
             double regret = 0.0;
-            int count = kRegret - 1;
-            for (int j = 1; j <= count; ++j) {
+            int limit = min(kRegret - 1, static_cast<int>(insertionCosts.size() - 1));
+            for (int j = 1; j <= limit; ++j) {
                 regret += insertionCosts[j].first - insertionCosts[0].first;
             }
 
-            // Weighted sum
             double weightedScore = weight_regret * regret + weight_objective * insertionCosts[0].first;
 
             if (weightedScore > bestWeightedScore) {
                 bestWeightedScore = weightedScore;
                 bestNode = node.id;
-                bestPos = insertionCosts[0].second; // use position from the list
+                bestPos = insertionCosts[0].second;
             }
         }
 
@@ -309,7 +319,7 @@ vector<int> nearestNeighborKRegretWeighted(
         visited[bestNode] = true;
     }
 
-    // Close cycle
+    // Optional: close cycle
     path.push_back(path[0]);
     return path;
 }
