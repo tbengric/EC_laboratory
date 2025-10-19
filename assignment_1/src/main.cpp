@@ -49,7 +49,7 @@ int main() {
         cout << "==============================" << endl;
 
         // Read the nodes from .CSV file
-        string filename = "../../data/" + tsp_type + ".csv";
+        string filename = "../data/" + tsp_type + ".csv";
         char delimiter = ';';
 
         vector<int> x, y, costs;
@@ -139,13 +139,13 @@ int main() {
         }
 
         // --- Save results for visualization ---
-        saveResults("assignment_1/visualization/" + tsp_type + "_paths.csv", nodes, bestRandPath, "Random Search");
-        saveResults("assignment_1/visualization/" + tsp_type + "_paths.csv", nodes, bestPath1, "Nearest Neighbor");
-        saveResults("assignment_1/visualization/" + tsp_type + "_paths.csv", nodes, bestPath2, "Nearest Neighbor Flexible");
-        saveResults("assignment_1/visualization/" + tsp_type + "_paths.csv", nodes, bestPath3, "Greedy Cycle");
+        saveResults("visualization/" + tsp_type + "_paths.csv", nodes, bestRandPath, "Random Search");
+        saveResults("visualization/" + tsp_type + "_paths.csv", nodes, bestPath1, "Nearest Neighbor");
+        saveResults("visualization/" + tsp_type + "_paths.csv", nodes, bestPath2, "Nearest Neighbor Flexible");
+        saveResults("visualization/" + tsp_type + "_paths.csv", nodes, bestPath3, "Greedy Cycle");
 
         // --- Save LaTeX table with results ---
-        string texFile = "assignment_1/results/" + tsp_type + "_results_table.tex";
+        string texFile = "results/" + tsp_type + "_results_table.tex";
         ofstream texOut(texFile);
         if (!texOut.is_open()) {
             cerr << "Error: could not create LaTeX file: " << texFile << endl;

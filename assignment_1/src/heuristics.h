@@ -127,7 +127,7 @@ vector<int> greedyCycle(const vector<vector<int>>& dist,
     int bestInitialScore = numeric_limits<int>::max();
     for (const Node& node : nodes) {
         if (visited[node.id]) continue;
-        int score = dist[startNodeId][node.id] + nodes[startNodeId].cost + node.cost;
+        int score = 2*dist[startNodeId][node.id] + nodes[startNodeId].cost + node.cost;
         if (score < bestInitialScore) {
             bestInitialScore = score;
             bestSecondNode = node.id;
@@ -138,7 +138,6 @@ vector<int> greedyCycle(const vector<vector<int>>& dist,
     visited[bestSecondNode] = true;
     path.push_back(startNodeId);
 
-
     //iteratively insert remaining nodes
     while (path.size() < static_cast<size_t>(numToSelect+1)) {
         int bestNode = -1;
@@ -148,7 +147,7 @@ vector<int> greedyCycle(const vector<vector<int>>& dist,
         for (const Node& node : nodes) {
             if (visited[node.id]) continue;
 
-            for (size_t i = 0; i < path.size() -1; ++i) {
+            for (size_t i = 1; i < path.size(); ++i) {
                 vector<int> tempPath = path;
                 tempPath.insert(tempPath.begin() + i, node.id);
                 int score = computeObjective(tempPath, dist, nodes);

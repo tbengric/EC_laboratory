@@ -5,9 +5,9 @@ import io
 import os
 import textwrap
 
-path_files = ["assignment_1/visualization/TSPA_paths.csv", "assignment_1/visualization/TSPB_paths.csv"]
-full_files = ["data/TSPA.csv", "data/TSPB.csv"]
-output_dir = "assignment_1/visualization/plots"
+path_files = ["visualization/TSPA_paths.csv", "visualization/TSPB_paths.csv"]
+full_files = ["../data/TSPA.csv", "../data/TSPB.csv"]
+output_dir = "visualization/plots"
 
 # Get the global MIN and MAX costs
 cost_limits = {}
