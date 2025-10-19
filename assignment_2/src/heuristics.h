@@ -173,9 +173,9 @@ vector<int> greedyCycleKRegretWeighted(
     const vector<Node>& nodes,
     int startNodeId,
     int kRegret = 2,
-    double weight_regret = 0.5
+    double weightRegret = 0.5
 ) {
-    double weight_objective = 1.0 - weight_regret;
+    double weightObjective = 1.0 - weightRegret;
     vector<int> path = { startNodeId };
     int numToSelect = nodes.size() / 2;
     vector<bool> visited(nodes.size(), false);
@@ -229,7 +229,7 @@ vector<int> greedyCycleKRegretWeighted(
             }
 
             // Weighted sum
-            double weightedScore = weight_regret * regret - weight_objective * insertionCosts[0].first;
+            double weightedScore = weightRegret * regret - weightObjective * insertionCosts[0].first;
 
             if (weightedScore > bestWeightedScore) {
                 bestWeightedScore = weightedScore;
@@ -238,7 +238,7 @@ vector<int> greedyCycleKRegretWeighted(
             }
         }
 
-        if (bestNode == -1){cout<<"HELLp"<<endl; break;}
+        if (bestNode == -1) break;
 
         path.insert(path.begin() + bestPos, bestNode);
         visited[bestNode] = true;
@@ -252,9 +252,9 @@ vector<int> nearestNeighborKRegretWeighted(
     const vector<Node>& nodes,
     int startNodeId,
     int kRegret = 2,
-    double weight_regret = 0.5
+    double weightRegret = 0.5
 ) {
-    double weight_objective = 1.0 - weight_regret;
+    double weightObjective = 1.0 - weightRegret;
     vector<int> path = { startNodeId };
     int maxSize = nodes.size() / 2;
 
@@ -304,7 +304,7 @@ vector<int> nearestNeighborKRegretWeighted(
             }
 
             // Weighted sum
-            double weightedScore = weight_regret * regret - weight_objective * insertionCosts[0].first;
+            double weightedScore = weightRegret * regret - weightObjective * insertionCosts[0].first;
 
             if (weightedScore > bestWeightedScore) {
                 bestWeightedScore = weightedScore;
