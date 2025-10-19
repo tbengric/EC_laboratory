@@ -128,19 +128,17 @@ int main() {
         int bestScoreNNflex = -1;
         int bestScoreGreedy = -1;
         int bestScoreGreedy2Regret = -1;
-        int bestScoreGreedy3Regret = -1;
-        int bestScoreGreedy5Regret = -1;
-        int bestScoreGreedy2RegretWSum = -1;
-        int bestScoreGreedy3RegretWSum = -1;
-        int bestScoreGreedy5RegretWSum = -1;
+        int bestScoreGreedt2RegretWeighted = -1;
+        int bestScoreNNflex2Regret = -1;
+        int bestScoreNNflex2RegretWeighted = -1;
 
         vector<int> bestPath1, bestPath2, bestPathGreedy;
-        vector<int> bestPathGreedy2Regret, bestPath3Regret, bestPath5Regret;
-        vector<int> bestPath2RegretWSum, bestPath3RegretWSum, bestPath5RegretWSum;
+        vector<int> bestPathGreedy2Regret, bestPathNNflex2Regret;
+        vector<int> bestPathGreedy2RegretWSum, bestPathNNflex2RegretWSum;
 
         vector<int> nnEndScores, nnFlexScores, greedyScores;
-        vector<int> greedy2Regret, greedy3Regret, greedy5Regret;
-        vector<int> greedy2RegretWSum, greedy3RegretWSum, greedy5RegretWSum;
+        vector<int> greedy2Regret, nnFlex2Regret;
+        vector<int> greedy2RegretWSum, nnFlex2RegretWSum;
 
         for (int id_starting_node = 0; id_starting_node < 200; id_starting_node++) {
             cout <<"Starting from node: " << id_starting_node << endl;
@@ -148,25 +146,27 @@ int main() {
             auto path1 = nearestNeighborEnd(distanceMatrix, nodes, id_starting_node);
             auto path2 = nearestNeighborFlexible(distanceMatrix, nodes, id_starting_node);
             auto path3 = greedyCycle(distanceMatrix, nodes, id_starting_node);
-            auto path4 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 1.0, 0.0);
-            // auto path5 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 3);
-            // auto path6 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 5);
-            auto path7 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 0.5, 0.5);
-            // auto path8 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 3, 0.5, 0.5);
-            // auto path9 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 5, 0.5, 0.5);
+            auto path4 = greedyCycle2Regret(distanceMatrix, nodes, id_starting_node);
+            auto path5 = greedyCycle2RegretWeightes(distanceMatrix, nodes, id_starting_node, 0.5);
+            auto path6 = nearestNeighborFlexibleWith2Regret(distanceMatrix, nodes, id_starting_node);
+            auto path7 = nearestNeighborFlexibleWith2RegretWithWeight(distanceMatrix, nodes, id_starting_node, 0.5);
 
 
             int costNNend = computeObjective(path1, distanceMatrix, nodes);
             int costNNflex = computeObjective(path2, distanceMatrix, nodes);
             int costGreedy = computeObjective(path3, distanceMatrix, nodes);
             int costGreedy2Regret = computeObjective(path4, distanceMatrix, nodes);
-            int costGreedy2RegretWSum = computeObjective(path7, distanceMatrix, nodes);
+            int costGreedy2RegretWSum = computeObjective(path5, distanceMatrix, nodes);
+            int costNNflex2Regret = computeObjective(path6, distanceMatrix, nodes);
+            int costNNflex2RegretWSum = computeObjective(path7, distanceMatrix, nodes);
 
             nnEndScores.push_back(costNNend);
             nnFlexScores.push_back(costNNflex);
             greedyScores.push_back(costGreedy);
             greedy2Regret.push_back(costGreedy2Regret);
             greedy2RegretWSum.push_back(costGreedy2RegretWSum);
+            nnFlex2Regret.push_back(costNNflex2Regret);
+            nnFlex2RegretWSum.push_back(costNNflex2RegretWSum);
 
             if (bestScoreNNend == -1) {bestScoreNNend = costNNend; bestPath1 = path1;}
             else if (costNNend < bestScoreNNend && bestScoreNNend != -1) {bestScoreNNend = costNNend; bestPath1 = path1;}
@@ -180,8 +180,14 @@ int main() {
             if (bestScoreGreedy2Regret == -1) {bestScoreGreedy2Regret = costGreedy2Regret; bestPathGreedy2Regret = path4;}
             else if (costGreedy2Regret < bestScoreGreedy2Regret && bestScoreGreedy2Regret != -1) {bestScoreGreedy2Regret = costGreedy2Regret; bestPathGreedy2Regret = path4;}
             
-            if (bestScoreGreedy2RegretWSum == -1) {bestScoreGreedy2RegretWSum = costGreedy2RegretWSum; bestPath2RegretWSum = path7;}
-            else if (costGreedy2RegretWSum < bestScoreGreedy2Regret && bestScoreGreedy2Regret != -1) {bestScoreGreedy2Regret = costGreedy2RegretWSum; bestPath2RegretWSum = path7;}
+            if (bestScoreGreedt2RegretWeighted == -1) {bestScoreGreedt2RegretWeighted = costGreedy2RegretWSum; bestPathGreedy2RegretWSum = path5;}
+            else if (costGreedy2RegretWSum < bestScoreGreedy2Regret && bestScoreGreedy2Regret != -1) {bestScoreGreedt2RegretWeighted = costGreedy2RegretWSum; bestPathGreedy2RegretWSum = path5;}
+
+            if (bestScoreNNflex2Regret == -1) {bestScoreNNflex2Regret = costNNflex2Regret; bestPathNNflex2Regret = path6;}
+            else if (costNNflex2Regret < bestScoreNNflex2Regret && bestScoreNNflex2Regret != -1) {bestScoreNNflex2Regret = costNNflex2Regret; bestPathNNflex2Regret = path6;}
+
+            if (bestScoreNNflex2RegretWeighted == -1) {bestScoreNNflex2RegretWeighted = costNNflex2RegretWSum; bestPathNNflex2RegretWSum = path7;}
+            else if (costNNflex2RegretWSum < bestScoreNNflex2RegretWeighted && bestScoreNNflex2RegretWeighted != -1) {bestScoreNNflex2RegretWeighted = costNNflex2RegretWSum; bestPathNNflex2RegretWSum = path7;}
            
         }
 
@@ -192,7 +198,9 @@ int main() {
         saveResults("../visualization/" + tsp_type + "_paths.csv", nodes, bestPath2, "Nearest Neighbor Flexible");
         saveResults("../visualization/" + tsp_type + "_paths.csv", nodes, bestPathGreedy, "Greedy Cycle");
         saveResults("../visualization/" + tsp_type + "_paths.csv", nodes, bestPathGreedy2Regret, "Greedy Cycle 2-Regret");
-        saveResults("../visualization/" + tsp_type + "_paths.csv", nodes, bestPath2RegretWSum, "Greedy Cycle 2-Regret with Weighted Sum");
+        saveResults("../visualization/" + tsp_type + "_paths.csv", nodes, bestPathGreedy2RegretWSum, "Greedy Cycle 2-Regret with Weighted Sum");
+        saveResults("../visualization/" + tsp_type + "_paths.csv", nodes, bestPathNNflex2Regret, "Nearest Neighbor Flexible with 2-Regret");
+        saveResults("../visualization/" + tsp_type + "_paths.csv", nodes, bestPathNNflex2RegretWSum, "Nearest Neighbor Flexible with 2-Regret with Weighted Sum");
 
         // --- Save LaTeX table with results ---
         string texFile = "../results/" + tsp_type + "_results_table.tex";
@@ -223,6 +231,8 @@ int main() {
         writeRowCompact("Greedy Cycle", greedyScores);
         writeRowCompact("Greedy Cycle 2-Regret", greedy2Regret);
         writeRowCompact("Greedy Cycle 2-Regret With Weighted Sum", greedy2RegretWSum);
+        writeRowCompact("Nearest Neighbor Flexible 2-Regret", nnFlex2Regret);
+        writeRowCompact("Nearest Neighbor Flexible 2-Regret With Weighted Sum", nnFlex2RegretWSum);
 
         texOut << "\\hline\n"
                << "\\end{tabular}\n"
