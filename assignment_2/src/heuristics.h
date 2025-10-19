@@ -432,12 +432,8 @@ vector<int> greedyCycleKRegretWeighted(
     const vector<Node>& nodes,
     int startNodeId,
     int kRegret = 2,
-<<<<<<< HEAD
-    double weight_regret = 0.5
-=======
     float regretWeight = 0.3,
     float deltaWeight = 0.7
->>>>>>> 8b0b38339a68ad97ba7497f43ebd0da5cad20a11
 ) {
     double weight_objective = 1.0 - weight_regret;
     vector<int> path = { startNodeId };
@@ -518,12 +514,8 @@ vector<int> nearestNeighborKRegretWeighted(
     const vector<Node>& nodes,
     int startNodeId,
     int kRegret = 2,
-<<<<<<< HEAD
-    double weight_regret = 0.5
-=======
     float regretWeight = 0.3,
     float deltaWeight = 0.7
->>>>>>> 8b0b38339a68ad97ba7497f43ebd0da5cad20a11
 ) {
     double weight_objective = 1.0 - weight_regret;
     vector<int> path = { startNodeId };
