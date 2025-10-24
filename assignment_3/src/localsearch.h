@@ -64,8 +64,19 @@ double delta_intra_edge(const vector<int>& path, int first_node_of_first_edge, i
     return delta;
 }
 
-double delta_inter_node(const vector<int>& path, int i, int j, const vector<vector<int>>& dist_matrix, const vector<Node>& nodes) {
-    
+double delta_inter_node(const vector<int>& path, int selected_node, int not_selected_node, const vector<vector<int>>& dist_matrix, const vector<Node>& nodes) {
+    int path_size = path.size();
+    if (path_size < 2) return 0.0;
+
+    int node_selected = path[selected_node];
+    int prev_node = path[(selected_node - 1 + path_size) % path_size];
+    int next_node = path[(selected_node + 1) % path_size];
+
+    double old_cost = dist_matrix[prev_node][node_selected] + dist_matrix[node_selected][next_node] + nodes[node_selected].cost;
+    double new_cost = dist_matrix[prev_node][not_selected_node] + dist_matrix[not_selected_node][next_node] + nodes[not_selected_node].cost;
+
+    double delta = new_cost - old_cost;
+    return delta;
 }
 
 pair<vector<int>, int> steepest_local_search(const vector<int>& initial_path, double initial_cost, const vector<vector<int>>& dist_matrix, const string& intra_method) {
