@@ -44,7 +44,24 @@ double delta_intra_node(const vector<int>& path, int first_node_index, int secon
 }
 
 double delta_intra_edge(const vector<int>& path, int first_node_of_first_edge, int first_node_of_second_edge, const vector<vector<int>>& dist_matrix) {
-    
+    int path_size = path.size();
+    if (path_size < 4) return 0.0;
+    int first_node_first_edge = path[first_node_of_first_edge];
+    int second_node_first_edge = path[(first_node_of_first_edge + 1) % path_size];
+    int first_node_second_edge = path[first_node_of_second_edge];
+    int second_node_second_edge = path[(first_node_of_second_edge + 1) % path_size];
+
+    if (second_node_first_edge == first_node_second_edge) {
+        // edges are adjacent
+        return 0.0;
+    }
+
+    double old_cost = dist_matrix[first_node_first_edge][second_node_first_edge] +
+                      dist_matrix[first_node_second_edge][second_node_second_edge];
+    double new_cost = dist_matrix[first_node_first_edge][first_node_second_edge] +
+                      dist_matrix[second_node_first_edge][second_node_second_edge];
+    double delta = new_cost - old_cost;
+    return delta;
 }
 
 double delta_inter_node(const vector<int>& path, int i, int j, const vector<vector<int>>& dist_matrix, const vector<Node>& nodes) {
