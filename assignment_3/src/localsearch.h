@@ -8,7 +8,7 @@
 
 using namespace std;
 
-double delta_intra_node(const vector<int>& path, int first_node_index, int second_node_index, const vector<vector<int>>& dist_matrix, const vector<Node>& nodes) {
+double delta_intra_node(const vector<int>& path, int first_node_index, int second_node_index, const vector<vector<int>>& dist_matrix) {
     int path_size = path.size();
     if (path_size < 2) return 0.0;
 
@@ -43,7 +43,7 @@ double delta_intra_node(const vector<int>& path, int first_node_index, int secon
     return delta;
 }
 
-double delta_intra_edge(const vector<int>& path, int firstnodeoffirstedge, int j, const vector<vector<int>>& dist_matrix, const vector<Node>& nodes) {
+double delta_intra_edge(const vector<int>& path, int first_node_of_first_edge, int first_node_of_second_edge, const vector<vector<int>>& dist_matrix) {
     
 }
 
