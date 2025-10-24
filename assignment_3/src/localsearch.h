@@ -5,6 +5,8 @@
 #include <random>
 #include "heuristics.h"
 #include "distance_matrix.h"
+#include <set>
+#include <tuple>
 
 using namespace std;
 
@@ -79,10 +81,90 @@ double delta_inter_node(const vector<int>& path, int selected_node, int not_sele
     return delta;
 }
 
-pair<vector<int>, int> steepest_local_search(const vector<int>& initial_path, double initial_cost, const vector<vector<int>>& dist_matrix, const string& intra_method) {
-    
+pair<vector<int>, double> steepest_local_search(const vector<int>& initial_path, double initial_cost, const vector<vector<int>>& dist_matrix, const string& intra_method, const vector<Node>& nodes) {
+    int dist_size = dist_matrix.size();
+    vector<int> current_path = initial_path;
+    double current_cost = initial_cost;
+    const double treshold = 1e-6;
+
+    while(true){
+        double best_delta = 0.0;
+        int best_move_type = -1; // 0: intra-node, 1: intra-edge, 2: inter-node
+        int best_first_node = 0, best_second_node = 0;
+        int best_not_selected_node = -1;
+
+        int current_path_size = current_path.size();
+        if (current_path_size < 2) break;
+
+        set<int> selected_nodes(current_path.begin(), current_path.end());
+        vector<int> not_selected_nodes;
+        for (int i = 0; i < dist_size; ++i) {
+            if (selected_nodes.find(i) == selected_nodes.end()) {
+                not_selected_nodes.push_back(i);
+            }
+        }
+
+        if (intra_method == "node"){
+            for (int i = 0; i < current_path_size; ++i) {
+                for (int j = i + 1; j < current_path_size; ++j) {
+                    double delta = delta_intra_node(current_path, i, j, dist_matrix);
+                    if (delta < best_delta) {
+                        best_delta = delta;
+                        best_move_type = 0;
+                        best_first_node = i;
+                        best_second_node = j;
+                    }
+                }
+            }
+        } else if (intra_method == "edge"){
+            for (int i = 0; i < current_path_size; ++i) {
+                for (int j = i + 2; j < current_path_size; ++j) {
+                    double delta = delta_intra_edge(current_path, i, j, dist_matrix);
+                    if (delta < best_delta) {
+                        best_delta = delta;
+                        best_move_type = 1;
+                        best_first_node = i;
+                        best_second_node = j;
+                    }
+                }
+            }
+        }
+
+        for (int i = 0; i < current_path_size; ++i) {
+            for (int not_selected_node : not_selected_nodes) {
+                double delta = delta_inter_node(current_path, i, not_selected_node, dist_matrix, nodes);
+                if (delta < best_delta) {
+                    best_delta = delta;
+                    best_move_type = 2;
+                    best_first_node = i;
+                    best_not_selected_node = not_selected_node;
+                }
+            }
+        }
+
+        if (best_move_type == -1 && abs(best_delta) < treshold) {
+            current_cost += best_delta;
+            if (best_move_type == 0) {
+                // intra-node swap
+                swap(current_path[best_first_node], current_path[best_second_node]);
+            } else if (best_move_type == 1) {
+                // intra-edge swap
+                int first_index = best_first_node;
+                int second_index = best_second_node;
+                reverse(current_path.begin() + first_index + 1, current_path.begin() + second_index + 1);
+            } else if (best_move_type == 2) {
+                // inter-node swap
+                current_path[best_first_node] = best_not_selected_node;
+            } 
+        } else {
+                break; // no improving move found
+            }
+        
+
+    }
+    return {current_path, static_cast<int>(current_cost)};
 }
 
-pair<vector<int>, int> greedy_local_search(const vector<int>& initial_path, double initial_cost, const vector<vector<int>>& dist_matrix, const string& intra_method) {
+pair<vector<int>, double> greedy_local_search(const vector<int>& initial_path, double initial_cost, const vector<vector<int>>& dist_matrix, const string& intra_method) {
     
 }
