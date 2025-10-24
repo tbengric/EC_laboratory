@@ -81,11 +81,12 @@ double delta_inter_node(const vector<int>& path, int selected_node, int not_sele
     return delta;
 }
 
+//Not sure if it works due to stop condition of the loop
 pair<vector<int>, double> steepest_local_search(const vector<int>& initial_path, double initial_cost, const vector<vector<int>>& dist_matrix, const string& intra_method, const vector<Node>& nodes) {
     int dist_size = dist_matrix.size();
     vector<int> current_path = initial_path;
     double current_cost = initial_cost;
-    const double treshold = 1e-6;
+    const double threshold = -1e-9;
 
     while(true){
         double best_delta = 0.0;
@@ -142,7 +143,7 @@ pair<vector<int>, double> steepest_local_search(const vector<int>& initial_path,
             }
         }
 
-        if (best_move_type == -1 && abs(best_delta) < treshold) {
+        if (best_move_type != -1 && best_delta < threshold) {
             current_cost += best_delta;
             if (best_move_type == 0) {
                 // intra-node swap
