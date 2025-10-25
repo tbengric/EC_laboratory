@@ -98,9 +98,9 @@ vector<int> steepest_local_search(const vector<int>& initial_path, const vector<
 
         set<int> selected_nodes(current_path.begin(), current_path.end());
         vector<int> not_selected_nodes;
-        for (int i = 0; i < dist_size; ++i) {
-            if (selected_nodes.find(i) == selected_nodes.end()) {
-                not_selected_nodes.push_back(i);
+        for (const auto& node : nodes) {
+            if (selected_nodes.find(node.id) == selected_nodes.end()) {
+                not_selected_nodes.push_back(node.id);
             }
         }
 
@@ -176,9 +176,9 @@ vector<int> greedy_local_search(const vector<int>& initial_path, const vector<ve
 
         set<int> selected_nodes(current_path.begin(), current_path.end());
         vector<int> not_selected_nodes;
-        for (int i = 0; i < dist_size; ++i) {
-            if (selected_nodes.find(i) == selected_nodes.end()) {
-                not_selected_nodes.push_back(i);
+        for (const auto& node : nodes) {
+            if (selected_nodes.find(node.id) == selected_nodes.end()) {
+                not_selected_nodes.push_back(node.id);
             }
         }
 
