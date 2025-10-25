@@ -82,7 +82,7 @@ double delta_inter_node(const vector<int>& path, int selected_node, int not_sele
 }
 
 //Not sure if it works due to stop condition of the loop
-vector<int> steepest_local_search(const vector<int>& initial_path, double initial_cost, const vector<vector<int>>& dist_matrix, const string& intra_method, const vector<Node>& nodes) {
+vector<int> steepest_local_search(const vector<int>& initial_path, const vector<vector<int>>& dist_matrix, const string& intra_method, const vector<Node>& nodes) {
     int dist_size = dist_matrix.size();
     vector<int> current_path = initial_path;
     //double current_cost = initial_cost;
@@ -165,7 +165,7 @@ vector<int> steepest_local_search(const vector<int>& initial_path, double initia
     return current_path;
 }
 
-vector<int> greedy_local_search(const vector<int>& initial_path, double initial_cost, const vector<vector<int>>& dist_matrix, const string& intra_method, const vector<Node>& nodes) {
+vector<int> greedy_local_search(const vector<int>& initial_path, const vector<vector<int>>& dist_matrix, const string& intra_method, const vector<Node>& nodes) {
     int dist_size = dist_matrix.size();
     vector<int> current_path = initial_path;
     //double current_cost = initial_cost;
