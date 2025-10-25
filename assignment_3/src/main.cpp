@@ -122,20 +122,20 @@ int main() {
 
             // --- Local Search Improvements ---
             // Random Heuristic
-            cout << "\nApplying Local Search on Best Random Solution..." << endl;
-            auto path_rand_greedy_intra_node = greedy_local_search(randPath, distanceMatrix, "node", nodes);
-            cout << "test" << endl;
-            auto path_rand_greedy_intra_edge = greedy_local_search(randPath, distanceMatrix, "edge", nodes);
-            cout << "test" << endl;
-            auto path_rand_steepest_intra_node = steepest_local_search(randPath, distanceMatrix, "node", nodes);
-            cout << "test" << endl;
-            auto path_rand_steepest_intra_edge = steepest_local_search(randPath, distanceMatrix, "edge", nodes);
-            cout << "test" << endl;
+            // << "\nApplying Local Search on Best Random Solution..." << endl;
+            //auto path_rand_greedy_intra_node = greedy_local_search(randPath, distanceMatrix, "node", nodes);
+            //cout << "test" << endl;
+            //auto path_rand_greedy_intra_edge = greedy_local_search(randPath, distanceMatrix, "edge", nodes);
+            //cout << "test" << endl;
+            //auto path_rand_steepest_intra_node = steepest_local_search(randPath, distanceMatrix, "node", nodes);
+            //cout << "test" << endl;
+            //auto path_rand_steepest_intra_edge = steepest_local_search(randPath, distanceMatrix, "edge", nodes);
+            //cout << "test" << endl;
 
-            auto rand_greedy_intra_node_score = computeObjective(path_rand_greedy_intra_node, distanceMatrix, nodes);
-            auto rand_greedy_intra_edge_score = computeObjective(path_rand_greedy_intra_edge, distanceMatrix, nodes);
-            auto rand_steepest_intra_node_score = computeObjective(path_rand_steepest_intra_node, distanceMatrix, nodes);
-            auto rand_steepest_intra_edge_score = computeObjective(path_rand_steepest_intra_edge, distanceMatrix, nodes);
+            //auto rand_greedy_intra_node_score = computeObjective(path_rand_greedy_intra_node, distanceMatrix, nodes);
+            //auto rand_greedy_intra_edge_score = computeObjective(path_rand_greedy_intra_edge, distanceMatrix, nodes);
+            //auto rand_steepest_intra_node_score = computeObjective(path_rand_steepest_intra_node, distanceMatrix, nodes);
+            //auto rand_steepest_intra_edge_score = computeObjective(path_rand_steepest_intra_edge, distanceMatrix, nodes);
         }
 
         
@@ -173,13 +173,13 @@ int main() {
             auto path3 = greedyCycle(distanceMatrix, nodes, id_starting_node);
 
             auto path_Greedy1 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 1.0);
-            auto path_Greedy2 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 3, 1.0);
+            //auto path_Greedy2 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 3, 1.0);
             auto path_Greedy3 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 0.5);
             auto path_Greedy4 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 0.2);
             auto path_Greedy5 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 0.7);
 
             auto path_NNflex1 = nearestNeighborKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 1.0);
-            auto path_NNflex2 = nearestNeighborKRegretWeighted(distanceMatrix, nodes, id_starting_node, 3, 1.0);
+            //auto path_NNflex2 = nearestNeighborKRegretWeighted(distanceMatrix, nodes, id_starting_node, 3, 1.0);
             auto path_NNflex3 = nearestNeighborKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 0.5);
             auto path_NNflex4 = nearestNeighborKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 0.2);
             auto path_NNflex5 = nearestNeighborKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 0.7);
@@ -190,13 +190,13 @@ int main() {
             if (!path3.empty()) { int cost = computeObjective(path3, distanceMatrix, nodes); greedyScores.push_back(cost); updateBest(bestScoreGreedy, bestPathGreedy, path3, cost); }
 
             if (!path_Greedy1.empty()) { int cost = computeObjective(path_Greedy1, distanceMatrix, nodes); greedy2Regret.push_back(cost); updateBest(bestScoreGreedy2Regret, bestPathGreedy2Regret, path_Greedy1, cost); }
-            if (!path_Greedy2.empty()) { int cost = computeObjective(path_Greedy2, distanceMatrix, nodes); greedy3Regret.push_back(cost); updateBest(bestScoreGreedy3Regret, bestPathGreedy3Regret, path_Greedy2, cost); }
+            //if (!path_Greedy2.empty()) { int cost = computeObjective(path_Greedy2, distanceMatrix, nodes); greedy3Regret.push_back(cost); updateBest(bestScoreGreedy3Regret, bestPathGreedy3Regret, path_Greedy2, cost); }
             if (!path_Greedy3.empty()) { int cost = computeObjective(path_Greedy3, distanceMatrix, nodes); greedy2RegretWSum.push_back(cost); updateBest(bestScoreGreedy2RegretWeighted, bestPathGreedy2RegretWSum, path_Greedy3, cost); }
             if (!path_Greedy4.empty()) { int cost = computeObjective(path_Greedy4, distanceMatrix, nodes); greedy2RegretWSum1.push_back(cost); updateBest(bestScoreGreedy2RegretWeighted1, bestPathGreedy2RegretWSum1, path_Greedy4, cost); }
             if (!path_Greedy5.empty()) { int cost = computeObjective(path_Greedy5, distanceMatrix, nodes); greedy2RegretWSum2.push_back(cost); updateBest(bestScoreGreedy2RegretWeighted2, bestPathGreedy2RegretWSum2, path_Greedy5, cost); }
 
             if (!path_NNflex1.empty()) { int cost = computeObjective(path_NNflex1, distanceMatrix, nodes); nnFlex2Regret.push_back(cost); updateBest(bestScoreNNflex2Regret, bestPathNNflex2Regret, path_NNflex1, cost); }
-            if (!path_NNflex2.empty()) { int cost = computeObjective(path_NNflex2, distanceMatrix, nodes); nnFlex3Regret.push_back(cost); updateBest(bestScoreNNflex3Regret, bestPathNNflex3Regret, path_NNflex2, cost); }
+            //if (!path_NNflex2.empty()) { int cost = computeObjective(path_NNflex2, distanceMatrix, nodes); nnFlex3Regret.push_back(cost); updateBest(bestScoreNNflex3Regret, bestPathNNflex3Regret, path_NNflex2, cost); }
             if (!path_NNflex3.empty()) { int cost = computeObjective(path_NNflex3, distanceMatrix, nodes); nnFlex2RegretWSum.push_back(cost); updateBest(bestScoreNNflex2RegretWeighted, bestPathNNflex2RegretWSum, path_NNflex3, cost); }
             if (!path_NNflex4.empty()) { int cost = computeObjective(path_NNflex4, distanceMatrix, nodes); nnFlex2RegretWSum1.push_back(cost); updateBest(bestScoreNNflex2RegretWeighted1, bestPathNNflex2RegretWSum1, path_NNflex4, cost); }
             if (!path_NNflex5.empty()) { int cost = computeObjective(path_NNflex5, distanceMatrix, nodes); nnFlex2RegretWSum2.push_back(cost); updateBest(bestScoreNNflex2RegretWeighted2, bestPathNNflex2RegretWSum2, path_NNflex5, cost); }
@@ -204,7 +204,7 @@ int main() {
             // --- Local Search Improvements ---
             // ASSIGNMENT PART : For greedy starting solutions use each of the 200 nodes as the starting node for the greedy heuristic. (don't know if i do that lol ?)
             // Greedy 2-regret Heuristic
-            cout << "\nApplying Local Search on Best Random Solution..." << endl;
+            cout << "\nApplying Local Search on Best Greedy Solution..." << endl;
             auto path_greedy2regret_greedy_intra_node = greedy_local_search(path_Greedy4, distanceMatrix, "node", nodes);
             auto path_greedy2regret_greedy_intra_edge = greedy_local_search(path_Greedy4, distanceMatrix, "edge", nodes);
             auto path_greedy2regret_steepest_intra_node = steepest_local_search(path_Greedy4, distanceMatrix, "node", nodes);
@@ -229,13 +229,13 @@ int main() {
         saveResults(visFile, nodes, bestPathGreedy, "Greedy Cycle");
 
         saveResults(visFile, nodes, bestPathGreedy2Regret, "Greedy Cycle (2-Regret)");
-        saveResults(visFile, nodes, bestPathGreedy3Regret, "Greedy Cycle (3-Regret)");
+        //saveResults(visFile, nodes, bestPathGreedy3Regret, "Greedy Cycle (3-Regret)");
         saveResults(visFile, nodes, bestPathGreedy2RegretWSum, "Greedy Cycle (2-Regret Weighted 0.5)");
         saveResults(visFile, nodes, bestPathGreedy2RegretWSum1, "Greedy Cycle (2-Regret Weighted 0.2)");
         saveResults(visFile, nodes, bestPathGreedy2RegretWSum2, "Greedy Cycle (2-Regret Weighted 0.7)");
 
         saveResults(visFile, nodes, bestPathNNflex2Regret, "NN-Flexible (2-Regret)");
-        saveResults(visFile, nodes, bestPathNNflex3Regret, "NN-Flexible (3-Regret)");
+        //saveResults(visFile, nodes, bestPathNNflex3Regret, "NN-Flexible (3-Regret)");
         saveResults(visFile, nodes, bestPathNNflex2RegretWSum, "NN-Flexible (2-Regret Weighted 0.5)");
         saveResults(visFile, nodes, bestPathNNflex2RegretWSum1, "NN-Flexible (2-Regret Weighted 0.2)");
         saveResults(visFile, nodes, bestPathNNflex2RegretWSum2, "NN-Flexible (2-Regret Weighted 0.7)");
@@ -265,12 +265,12 @@ int main() {
         writeRowCompact("Nearest Neighbor (Flexible)", nnFlexScores);
         writeRowCompact("Greedy Cycle", greedyScores);
         writeRowCompact("Greedy Cycle (2-Regret)", greedy2Regret);
-        writeRowCompact("Greedy Cycle (3-Regret)", greedy3Regret);
+        //writeRowCompact("Greedy Cycle (3-Regret)", greedy3Regret);
         writeRowCompact("Greedy Cycle (2-Regret Weighted 0.5)", greedy2RegretWSum);
         writeRowCompact("Greedy Cycle (2-Regret Weighted 0.2)", greedy2RegretWSum1);
         writeRowCompact("Greedy Cycle (2-Regret Weighted 0.7)", greedy2RegretWSum2);
         writeRowCompact("NN-Flexible (2-Regret)", nnFlex2Regret);
-        writeRowCompact("NN-Flexible (3-Regret)", nnFlex3Regret);
+        //writeRowCompact("NN-Flexible (3-Regret)", nnFlex3Regret);
         writeRowCompact("NN-Flexible (2-Regret Weighted 0.5)", nnFlex2RegretWSum);
         writeRowCompact("NN-Flexible (2-Regret Weighted 0.2)", nnFlex2RegretWSum1);
         writeRowCompact("NN-Flexible (2-Regret Weighted 0.7)", nnFlex2RegretWSum2);
