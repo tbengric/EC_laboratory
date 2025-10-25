@@ -165,6 +165,81 @@ pair<vector<int>, double> steepest_local_search(const vector<int>& initial_path,
     return {current_path, static_cast<int>(current_cost)};
 }
 
-pair<vector<int>, double> greedy_local_search(const vector<int>& initial_path, double initial_cost, const vector<vector<int>>& dist_matrix, const string& intra_method) {
-    
+pair<vector<int>, double> greedy_local_search(const vector<int>& initial_path, double initial_cost, const vector<vector<int>>& dist_matrix, const string& intra_method, const vector<Node>& nodes) {
+    int dist_size = dist_matrix.size();
+    vector<int> current_path = initial_path;
+    double current_cost = initial_cost;
+
+    while (true){
+        int current_path_size = current_path.size();
+        if (current_path_size < 2) break;
+
+        set<int> selected_nodes(current_path.begin(), current_path.end());
+        vector<int> not_selected_nodes;
+        for (int i = 0; i < dist_size; ++i) {
+            if (selected_nodes.find(i) == selected_nodes.end()) {
+                not_selected_nodes.push_back(i);
+            }
+        }
+
+        vector<tuple<int, int, int, int>> possible_moves; // move_type, first_node, second_node, not_selected_node (in case of inter_node)
+
+        if (intra_method == "node"){
+            for (int i = 0; i < current_path_size; ++i) {
+                for (int j = i + 1; j < current_path_size; ++j) {
+                    possible_moves.emplace_back(0, i, j, -1);
+                }
+            }
+        } else if (intra_method == "edge"){
+            for (int i = 0; i < current_path_size; ++i) {
+                for (int j = i + 2; j < current_path_size; ++j) {
+                    possible_moves.emplace_back(1, i, j, -1);
+                }
+            }
+        }
+
+        for (int i = 0; i < current_path_size; ++i) {
+            for (int not_selected_node : not_selected_nodes) {
+                possible_moves.emplace_back(2, i, -1, not_selected_node);
+            }
+        }
+
+        if (possible_moves.empty()) break;
+
+        shuffle(possible_moves.begin(), possible_moves.end(), std::mt19937{std::random_device{}()});
+        bool found_better_move = false;
+
+        for (const auto& move : possible_moves) {
+            int move_type = get<0>(move);
+            int first_node = get<1>(move);
+            int second_node = get<2>(move);
+            int not_selected_node = get<3>(move);
+
+            double delta = 0.0;
+            if (move_type == 0) {
+                delta = delta_intra_node(current_path, first_node, second_node, dist_matrix);
+            } else if (move_type == 1) {
+                delta = delta_intra_edge(current_path, first_node, second_node, dist_matrix);
+            } else if (move_type == 2) {
+                delta = delta_inter_node(current_path, first_node, not_selected_node, dist_matrix, nodes);
+            }
+
+            if (delta < 0.0) {
+                current_cost += delta;
+                if (move_type == 0) {
+                    swap(current_path[first_node], current_path[second_node]);
+                } else if (move_type == 1) {
+                    reverse(current_path.begin() + first_node + 1, current_path.begin() + second_node + 1);
+                } else if (move_type == 2) {
+                    current_path[first_node] = not_selected_node;
+                }
+                found_better_move = true;
+                break; // exit after the first improving move
+            }
+        }
+
+        if (!found_better_move) {
+            break; // no improving move found
+    }
+    return {current_path, static_cast<int>(current_cost)};
 }
