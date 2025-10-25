@@ -240,6 +240,8 @@ vector<int> greedy_local_search(const vector<int>& initial_path, const vector<ve
 
         if (!found_better_move) {
             break; // no improving move found
+        }
     }
+    
     return current_path;
 }
