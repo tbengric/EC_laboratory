@@ -18,7 +18,7 @@ double delta_intra_node(const vector<int>& path, int first_node_index, int secon
     int first = path[first_node_index];
     int next_first = path[(first_node_index + 1) % path_size];
 
-    int prev_second = path[(first_node_index - 1 + path_size) % path_size];
+    int prev_second = path[(second_node_index - 1 + path_size) % path_size];
     int second = path[second_node_index];
     int next_second = path[(second_node_index + 1) % path_size];
 
