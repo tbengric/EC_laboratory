@@ -121,6 +121,18 @@ int main() {
             }
         }
 
+        // --- Local Search Improvements ---
+        // Random Heuristic
+        auto path_rand_greedy_intra_node = greedy_local_search(bestRandPath, distanceMatrix, "node", nodes);
+        auto path_rand_greedy_intra_edge = greedy_local_search(bestRandPath, distanceMatrix, "edge", nodes);
+        auto path_rand_steepest_intra_node = steepest_local_search(bestRandPath, distanceMatrix, "node", nodes);
+        auto path_rand_steepest_intra_edge = steepest_local_search(bestRandPath, distanceMatrix, "edge", nodes);
+
+        auto rand_greedy_intra_node_score = computeObjective(path_rand_greedy_intra_node, distanceMatrix, nodes);
+        auto rand_greedy_intra_edge_score = computeObjective(path_rand_greedy_intra_edge, distanceMatrix, nodes);
+        auto rand_steepest_intra_node_score = computeObjective(path_rand_steepest_intra_node, distanceMatrix, nodes);
+        auto rand_steepest_intra_edge_score = computeObjective(path_rand_steepest_intra_edge, distanceMatrix, nodes);
+
         // --- Heuristic searches ---
         int bestScoreNNend = -1, bestScoreNNflex = -1, bestScoreGreedy = -1;
 
@@ -181,7 +193,22 @@ int main() {
             if (!path_NNflex3.empty()) { int cost = computeObjective(path_NNflex3, distanceMatrix, nodes); nnFlex2RegretWSum.push_back(cost); updateBest(bestScoreNNflex2RegretWeighted, bestPathNNflex2RegretWSum, path_NNflex3, cost); }
             if (!path_NNflex4.empty()) { int cost = computeObjective(path_NNflex4, distanceMatrix, nodes); nnFlex2RegretWSum1.push_back(cost); updateBest(bestScoreNNflex2RegretWeighted1, bestPathNNflex2RegretWSum1, path_NNflex4, cost); }
             if (!path_NNflex5.empty()) { int cost = computeObjective(path_NNflex5, distanceMatrix, nodes); nnFlex2RegretWSum2.push_back(cost); updateBest(bestScoreNNflex2RegretWeighted2, bestPathNNflex2RegretWSum2, path_NNflex5, cost); }
+
+            // --- Local Search Improvements ---
+            // Greedy 2-regret Heuristic
+            auto path_greedy2regret_greedy_intra_node = greedy_local_search(path_Greedy4, distanceMatrix, "node", nodes);
+            auto path_greedy2regret_greedy_intra_edge = greedy_local_search(path_Greedy4, distanceMatrix, "edge", nodes);
+            auto path_greedy2regret_steepest_intra_node = steepest_local_search(path_Greedy4, distanceMatrix, "node", nodes);
+            auto path_greedy2regret_steepest_intra_edge = steepest_local_search(path_Greedy4, distanceMatrix, "edge", nodes);
+
+            auto greedy2regret_greedy_intra_node_score = computeObjective(path_greedy2regret_greedy_intra_node, distanceMatrix, nodes);
+            auto greedy2regret_greedy_intra_edge_score = computeObjective(path_greedy2regret_greedy_intra_edge, distanceMatrix, nodes);
+            auto greedy2regret_steepest_intra_node_score = computeObjective(path_greedy2regret_steepest_intra_node, distanceMatrix, nodes);
+            auto greedy2regret_steepest_intra_edge_score = computeObjective(path_greedy2regret_steepest_intra_edge, distanceMatrix, nodes);
         }
+
+    
+
 
         // --- Save results for visualization ---
         string visFile = "../visualization/" + tsp_type + "_paths.csv";
