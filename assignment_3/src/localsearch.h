@@ -142,19 +142,24 @@ vector<int> steepest_local_search(const vector<int>& initial_path, const vector<
             }
         }
 
+        int index_first_node, index_second_node;
+            for (int i = 0; i < current_path_size; ++i) {
+                if (current_path[i] == best_first_node) index_first_node = i;
+                if (current_path[i] == best_second_node) index_second_node = i;
+            }
+
+
         if (best_move_type != -1 && best_delta < 0.0) {
             //current_cost += best_delta;
             if (best_move_type == 0) {
                 // intra-node swap
-                swap(current_path[best_first_node], current_path[best_second_node]);
+                swap(current_path[index_first_node], current_path[best_second_node]);
             } else if (best_move_type == 1) {
                 // intra-edge swap
-                int first_index = best_first_node;
-                int second_index = best_second_node;
-                reverse(current_path.begin() + first_index + 1, current_path.begin() + second_index + 1);
+                reverse(current_path.begin() + index_first_node + 1, current_path.begin() + index_second_node + 1);
             } else if (best_move_type == 2) {
                 // inter-node swap
-                current_path[best_first_node] = best_not_selected_node;
+                current_path[index_first_node] = best_not_selected_node;
             } 
         } else {
                 break; // no improving move found
@@ -224,14 +229,21 @@ vector<int> greedy_local_search(const vector<int>& initial_path, const vector<ve
                 delta = delta_inter_node(current_path, first_node, not_selected_node, dist_matrix, nodes);
             }
 
+            int index_first_node, index_second_node;
+            for (int i = 0; i < current_path_size; ++i) {
+                if (current_path[i] == first_node) index_first_node = i;
+                if (current_path[i] == second_node) index_second_node = i;
+            }
+
+            
             if (delta < 0.0) {
                 //current_cost += delta;
                 if (move_type == 0) {
-                    swap(current_path[first_node], current_path[second_node]);
+                    swap(current_path[index_first_node], current_path[index_second_node]);
                 } else if (move_type == 1) {
-                    reverse(current_path.begin() + first_node + 1, current_path.begin() + second_node + 1);
+                    reverse(current_path.begin() + index_first_node + 1, current_path.begin() + index_second_node + 1);
                 } else if (move_type == 2) {
-                    current_path[first_node] = not_selected_node;
+                    current_path[index_first_node] = not_selected_node;
                 }
                 found_better_move = true;
                 break; // exit after the first improving move
