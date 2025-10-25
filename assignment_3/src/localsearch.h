@@ -82,10 +82,10 @@ double delta_inter_node(const vector<int>& path, int selected_node, int not_sele
 }
 
 //Not sure if it works due to stop condition of the loop
-pair<vector<int>, double> steepest_local_search(const vector<int>& initial_path, double initial_cost, const vector<vector<int>>& dist_matrix, const string& intra_method, const vector<Node>& nodes) {
+vector<int> steepest_local_search(const vector<int>& initial_path, double initial_cost, const vector<vector<int>>& dist_matrix, const string& intra_method, const vector<Node>& nodes) {
     int dist_size = dist_matrix.size();
     vector<int> current_path = initial_path;
-    double current_cost = initial_cost;
+    //double current_cost = initial_cost;
 
     while(true){
         double best_delta = 0.0;
@@ -143,7 +143,7 @@ pair<vector<int>, double> steepest_local_search(const vector<int>& initial_path,
         }
 
         if (best_move_type != -1 && best_delta < 0.0) {
-            current_cost += best_delta;
+            //current_cost += best_delta;
             if (best_move_type == 0) {
                 // intra-node swap
                 swap(current_path[best_first_node], current_path[best_second_node]);
@@ -162,13 +162,13 @@ pair<vector<int>, double> steepest_local_search(const vector<int>& initial_path,
         
 
     }
-    return {current_path, static_cast<int>(current_cost)};
+    return current_path;
 }
 
-pair<vector<int>, double> greedy_local_search(const vector<int>& initial_path, double initial_cost, const vector<vector<int>>& dist_matrix, const string& intra_method, const vector<Node>& nodes) {
+vector<int> greedy_local_search(const vector<int>& initial_path, double initial_cost, const vector<vector<int>>& dist_matrix, const string& intra_method, const vector<Node>& nodes) {
     int dist_size = dist_matrix.size();
     vector<int> current_path = initial_path;
-    double current_cost = initial_cost;
+    //double current_cost = initial_cost;
 
     while (true){
         int current_path_size = current_path.size();
@@ -225,7 +225,7 @@ pair<vector<int>, double> greedy_local_search(const vector<int>& initial_path, d
             }
 
             if (delta < 0.0) {
-                current_cost += delta;
+                //current_cost += delta;
                 if (move_type == 0) {
                     swap(current_path[first_node], current_path[second_node]);
                 } else if (move_type == 1) {
@@ -241,5 +241,5 @@ pair<vector<int>, double> greedy_local_search(const vector<int>& initial_path, d
         if (!found_better_move) {
             break; // no improving move found
     }
-    return {current_path, static_cast<int>(current_cost)};
+    return current_path;
 }
