@@ -119,24 +119,26 @@ int main() {
                 bestRandScore = score;
                 bestRandPath = randPath;
             }
+
+            // --- Local Search Improvements ---
+            // Random Heuristic
+            cout << "\nApplying Local Search on Best Random Solution..." << endl;
+            auto path_rand_greedy_intra_node = greedy_local_search(randPath, distanceMatrix, "node", nodes);
+            cout << "test" << endl;
+            auto path_rand_greedy_intra_edge = greedy_local_search(randPath, distanceMatrix, "edge", nodes);
+            cout << "test" << endl;
+            auto path_rand_steepest_intra_node = steepest_local_search(randPath, distanceMatrix, "node", nodes);
+            cout << "test" << endl;
+            auto path_rand_steepest_intra_edge = steepest_local_search(randPath, distanceMatrix, "edge", nodes);
+            cout << "test" << endl;
+
+            auto rand_greedy_intra_node_score = computeObjective(path_rand_greedy_intra_node, distanceMatrix, nodes);
+            auto rand_greedy_intra_edge_score = computeObjective(path_rand_greedy_intra_edge, distanceMatrix, nodes);
+            auto rand_steepest_intra_node_score = computeObjective(path_rand_steepest_intra_node, distanceMatrix, nodes);
+            auto rand_steepest_intra_edge_score = computeObjective(path_rand_steepest_intra_edge, distanceMatrix, nodes);
         }
 
-        // --- Local Search Improvements ---
-        // Random Heuristic
-        cout << "\nApplying Local Search on Best Random Solution..." << endl;
-        auto path_rand_greedy_intra_node = greedy_local_search(bestRandPath, distanceMatrix, "node", nodes);
-        cout << "test" << endl;
-        auto path_rand_greedy_intra_edge = greedy_local_search(bestRandPath, distanceMatrix, "edge", nodes);
-        cout << "test" << endl;
-        auto path_rand_steepest_intra_node = steepest_local_search(bestRandPath, distanceMatrix, "node", nodes);
-        cout << "test" << endl;
-        auto path_rand_steepest_intra_edge = steepest_local_search(bestRandPath, distanceMatrix, "edge", nodes);
-        cout << "test" << endl;
-
-        auto rand_greedy_intra_node_score = computeObjective(path_rand_greedy_intra_node, distanceMatrix, nodes);
-        auto rand_greedy_intra_edge_score = computeObjective(path_rand_greedy_intra_edge, distanceMatrix, nodes);
-        auto rand_steepest_intra_node_score = computeObjective(path_rand_steepest_intra_node, distanceMatrix, nodes);
-        auto rand_steepest_intra_edge_score = computeObjective(path_rand_steepest_intra_edge, distanceMatrix, nodes);
+        
         
         // --- Heuristic searches ---
         int bestScoreNNend = -1, bestScoreNNflex = -1, bestScoreGreedy = -1;
@@ -199,21 +201,22 @@ int main() {
             if (!path_NNflex4.empty()) { int cost = computeObjective(path_NNflex4, distanceMatrix, nodes); nnFlex2RegretWSum1.push_back(cost); updateBest(bestScoreNNflex2RegretWeighted1, bestPathNNflex2RegretWSum1, path_NNflex4, cost); }
             if (!path_NNflex5.empty()) { int cost = computeObjective(path_NNflex5, distanceMatrix, nodes); nnFlex2RegretWSum2.push_back(cost); updateBest(bestScoreNNflex2RegretWeighted2, bestPathNNflex2RegretWSum2, path_NNflex5, cost); }
 
+            // --- Local Search Improvements ---
+            // ASSIGNMENT PART : For greedy starting solutions use each of the 200 nodes as the starting node for the greedy heuristic. (don't know if i do that lol ?)
+            // Greedy 2-regret Heuristic
+            cout << "\nApplying Local Search on Best Random Solution..." << endl;
+            auto path_greedy2regret_greedy_intra_node = greedy_local_search(path_Greedy4, distanceMatrix, "node", nodes);
+            auto path_greedy2regret_greedy_intra_edge = greedy_local_search(path_Greedy4, distanceMatrix, "edge", nodes);
+            auto path_greedy2regret_steepest_intra_node = steepest_local_search(path_Greedy4, distanceMatrix, "node", nodes);
+            auto path_greedy2regret_steepest_intra_edge = steepest_local_search(path_Greedy4, distanceMatrix, "edge", nodes);
+
+            auto greedy2regret_greedy_intra_node_score = computeObjective(path_greedy2regret_greedy_intra_node, distanceMatrix, nodes);
+            auto greedy2regret_greedy_intra_edge_score = computeObjective(path_greedy2regret_greedy_intra_edge, distanceMatrix, nodes);
+            auto greedy2regret_steepest_intra_node_score = computeObjective(path_greedy2regret_steepest_intra_node, distanceMatrix, nodes);
+            auto greedy2regret_steepest_intra_edge_score = computeObjective(path_greedy2regret_steepest_intra_edge, distanceMatrix, nodes);
+
             
         }
-
-        // --- Local Search Improvements ---
-        // Greedy 2-regret Heuristic
-        cout << "\nApplying Local Search on Best Random Solution..." << endl;
-        auto path_greedy2regret_greedy_intra_node = greedy_local_search(bestPathGreedy2RegretWSum1, distanceMatrix, "node", nodes);
-        auto path_greedy2regret_greedy_intra_edge = greedy_local_search(bestPathGreedy2RegretWSum1, distanceMatrix, "edge", nodes);
-        auto path_greedy2regret_steepest_intra_node = steepest_local_search(bestPathGreedy2RegretWSum1, distanceMatrix, "node", nodes);
-        auto path_greedy2regret_steepest_intra_edge = steepest_local_search(bestPathGreedy2RegretWSum1, distanceMatrix, "edge", nodes);
-
-        auto greedy2regret_greedy_intra_node_score = computeObjective(path_greedy2regret_greedy_intra_node, distanceMatrix, nodes);
-        auto greedy2regret_greedy_intra_edge_score = computeObjective(path_greedy2regret_greedy_intra_edge, distanceMatrix, nodes);
-        auto greedy2regret_steepest_intra_node_score = computeObjective(path_greedy2regret_steepest_intra_node, distanceMatrix, nodes);
-        auto greedy2regret_steepest_intra_edge_score = computeObjective(path_greedy2regret_steepest_intra_edge, distanceMatrix, nodes);
 
 
         // --- Save results for visualization ---
