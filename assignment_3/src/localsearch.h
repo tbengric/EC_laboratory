@@ -86,7 +86,6 @@ pair<vector<int>, double> steepest_local_search(const vector<int>& initial_path,
     int dist_size = dist_matrix.size();
     vector<int> current_path = initial_path;
     double current_cost = initial_cost;
-    const double threshold = -1e-9;
 
     while(true){
         double best_delta = 0.0;
@@ -143,7 +142,7 @@ pair<vector<int>, double> steepest_local_search(const vector<int>& initial_path,
             }
         }
 
-        if (best_move_type != -1 && best_delta < threshold) {
+        if (best_move_type != -1 && best_delta < 0.0) {
             current_cost += best_delta;
             if (best_move_type == 0) {
                 // intra-node swap
