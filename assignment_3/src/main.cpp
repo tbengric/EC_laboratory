@@ -3,20 +3,32 @@
 #include <sstream>
 #include <vector>
 #include <string>
-#include "node.h"
-#include "distance_matrix.h"
-#include "heuristics.h"
 #include <iomanip>
 #include <numeric>
 #include <algorithm>
 #include <filesystem>
+#include <chrono>
+#include "node.h"
+#include "distance_matrix.h"
+#include "heuristics.h"
 #include "localsearch.h"
 
 using namespace std;
 namespace fs = std::filesystem;
 
-// --- Utility functions ---
+// --- Timer ---
+struct Timer {
+    chrono::high_resolution_clock::time_point start;
 
+    void tic() { start = chrono::high_resolution_clock::now(); }
+
+    double toc_ms() {
+        auto end = chrono::high_resolution_clock::now();
+        return chrono::duration<double, std::milli>(end - start).count();
+    }
+};
+
+// --- Utility functions ---
 void delete_content_file(const string& filename) {
     fs::path filepath = filename;
     try {
@@ -48,7 +60,12 @@ void saveResults(const string& filename,
     out.close();
 }
 
-double average(const vector<int>& values) {
+double average_ints(const vector<int>& values) {
+    if (values.empty()) return 0.0;
+    return accumulate(values.begin(), values.end(), 0.0) / values.size();
+}
+
+double average_doubles(const vector<double>& values) {
     if (values.empty()) return 0.0;
     return accumulate(values.begin(), values.end(), 0.0) / values.size();
 }
@@ -79,16 +96,22 @@ int main() {
         }
 
         string line;
-        int a, b, c;
         while (getline(file, line)) {
             stringstream ss(line);
-            if (ss >> a >> delimiter >> b >> delimiter >> c) {
-                x.push_back(a);
-                y.push_back(b);
-                costs.push_back(c);
-            } else {
-                cerr << "Warning: Skipping malformed line: " << line << endl;
-            }
+            string token;
+            int a, b, c;
+            if (getline(ss, token, delimiter)) a = stoi(token);
+            else { cerr << "Skipping malformed line: " << line << endl; continue; }
+
+            if (getline(ss, token, delimiter)) b = stoi(token);
+            else { cerr << "Skipping malformed line: " << line << endl; continue; }
+
+            if (getline(ss, token, delimiter)) c = stoi(token);
+            else { cerr << "Skipping malformed line: " << line << endl; continue; }
+
+            x.push_back(a);
+            y.push_back(b);
+            costs.push_back(c);
         }
         file.close();
 
@@ -103,186 +126,259 @@ int main() {
         }
 
         // --- Distance matrix ---
-        vector<vector<int>> distanceMatrix = DistanceMatrix(nodes);
+        auto distanceMatrix = DistanceMatrix(nodes);
 
-        // --- Random Search ---
-        vector<int> bestRandPath;
-        int bestRandScore = -1;
+        // --- Initialize scores and times ---
         vector<int> randScores;
-
-        for (int i = 0; i < 200; i++) {
-            vector<int> selectedNodes = selectNodes(nodes.size());
-            auto randPath = randomSolution(selectedNodes);
-            int score = computeObjective(randPath, distanceMatrix, nodes);
-            randScores.push_back(score);
-            if (bestRandScore == -1 || score < bestRandScore) {
-                bestRandScore = score;
-                bestRandPath = randPath;
-            }
-
-            // --- Local Search Improvements ---
-            // Random Heuristic
-            // << "\nApplying Local Search on Best Random Solution..." << endl;
-            //auto path_rand_greedy_intra_node = greedy_local_search(randPath, distanceMatrix, "node", nodes);
-            //cout << "test" << endl;
-            //auto path_rand_greedy_intra_edge = greedy_local_search(randPath, distanceMatrix, "edge", nodes);
-            //cout << "test" << endl;
-            //auto path_rand_steepest_intra_node = steepest_local_search(randPath, distanceMatrix, "node", nodes);
-            //cout << "test" << endl;
-            //auto path_rand_steepest_intra_edge = steepest_local_search(randPath, distanceMatrix, "edge", nodes);
-            //cout << "test" << endl;
-
-            //auto rand_greedy_intra_node_score = computeObjective(path_rand_greedy_intra_node, distanceMatrix, nodes);
-            //auto rand_greedy_intra_edge_score = computeObjective(path_rand_greedy_intra_edge, distanceMatrix, nodes);
-            //auto rand_steepest_intra_node_score = computeObjective(path_rand_steepest_intra_node, distanceMatrix, nodes);
-            //auto rand_steepest_intra_edge_score = computeObjective(path_rand_steepest_intra_edge, distanceMatrix, nodes);
-        }
-
-        
-        
-        // --- Heuristic searches ---
-        int bestScoreNNend = -1, bestScoreNNflex = -1, bestScoreGreedy = -1;
-
-        int bestScoreGreedy2Regret = -1, bestScoreGreedy3Regret = -1;
-        int bestScoreGreedy2RegretWeighted = -1, bestScoreGreedy2RegretWeighted1 = -1, bestScoreGreedy2RegretWeighted2 = -1;
-
-        int bestScoreNNflex2Regret = -1, bestScoreNNflex3Regret = -1;
-        int bestScoreNNflex2RegretWeighted = -1, bestScoreNNflex2RegretWeighted1 = -1, bestScoreNNflex2RegretWeighted2 = -1;
-
-        vector<int> bestPath1, bestPath2, bestPathGreedy;
-        vector<int> bestPathGreedy2Regret, bestPathGreedy3Regret, bestPathGreedy2RegretWSum, bestPathGreedy2RegretWSum1, bestPathGreedy2RegretWSum2;
-        vector<int> bestPathNNflex2Regret, bestPathNNflex3Regret, bestPathNNflex2RegretWSum, bestPathNNflex2RegretWSum1, bestPathNNflex2RegretWSum2;
-
         vector<int> nnEndScores, nnFlexScores, greedyScores;
-        vector<int> greedy2Regret, greedy3Regret, greedy2RegretWSum, greedy2RegretWSum1, greedy2RegretWSum2;
-        vector<int> nnFlex2Regret, nnFlex3Regret, nnFlex2RegretWSum, nnFlex2RegretWSum1, nnFlex2RegretWSum2;
+        vector<int> greedy2Regret, greedy2RegretWSum;
+        vector<int> nnFlex2Regret, nnFlex2RegretWSum;
 
-        auto updateBest = [](int& bestScore, vector<int>& bestPath, const vector<int>& path, int cost) {
-            if (bestScore == -1 || cost < bestScore) {
-                bestScore = cost;
+        vector<double> randTimes_ms;
+        vector<double> nnEndTimes_ms, nnFlexTimes_ms, greedyTimes_ms;
+        vector<double> greedy2RegretTimes_ms, greedy2RegretWSumTimes_ms;
+        vector<double> nnFlex2RegretTimes_ms, nnFlex2RegretWSumTimes_ms;
+
+        vector<int> localGreedyNodeScores_Greedy, localGreedyEdgeScores_Greedy;
+        vector<int> localSteepestNodeScores_Greedy, localSteepestEdgeScores_Greedy;
+        vector<int> localGreedyNodeScores_Rand, localGreedyEdgeScores_Rand;
+        vector<int> localSteepestNodeScores_Rand, localSteepestEdgeScores_Rand;
+
+        vector<double> localGreedyNodeTimes_Greedy_ms, localGreedyEdgeTimes_Greedy_ms;
+        vector<double> localSteepestNodeTimes_Greedy_ms, localSteepestEdgeTimes_Greedy_ms;
+        vector<double> localGreedyNodeTimes_Rand_ms, localGreedyEdgeTimes_Rand_ms;
+        vector<double> localSteepestNodeTimes_Rand_ms, localSteepestEdgeTimes_Rand_ms;
+
+        vector<int> bestRandPath, bestNNEnd, bestNNFlex, bestGreedy, bestG2, bestG05, bestNNF2, bestNNF05;
+        vector<int> bestLocalGreedyNode_Greedy, bestLocalGreedyEdge_Greedy, bestLocalSteepestNode_Greedy, bestLocalSteepestEdge_Greedy;
+        vector<int> bestLocalGreedyNode_Rand, bestLocalGreedyEdge_Rand, bestLocalSteepestNode_Rand, bestLocalSteepestEdge_Rand;
+
+        int bestRandScore = -1;
+        int bestScoreNNend = -1, bestScoreNNflex = -1, bestScoreGreedy = -1;
+        int bestScoreGreedy2Regret = -1, bestScoreGreedy2RegretWeighted = -1;
+        int bestScoreNNflex2Regret = -1, bestScoreNNflex2RegretWeighted = -1;
+        int bestLocalGreedyNodeScore_Greedy = -1, bestLocalGreedyEdgeScore_Greedy = -1;
+        int bestLocalSteepestNodeScore_Greedy = -1, bestLocalSteepestEdgeScore_Greedy = -1;
+        int bestLocalGreedyNodeScore_Rand = -1, bestLocalGreedyEdgeScore_Rand = -1;
+        int bestLocalSteepestNodeScore_Rand = -1, bestLocalSteepestEdgeScore_Rand = -1;
+
+        auto updateBest = [](int& bestScore, vector<int>& bestPath, const vector<int>& path, int score) {
+            if (path.empty()) return;
+            if (bestScore == -1 || score < bestScore) {
+                bestScore = score;
                 bestPath = path;
             }
         };
 
-        for (int id_starting_node = 0; id_starting_node < 200; id_starting_node++) {
+        // --- Random Search ---
+        for (int i = 0; i < 200; ++i) {
+            Timer timer;
+            timer.tic();
+            vector<int> selectedNodes = selectNodes(nodes.size()); 
+            auto randPath = randomSolution(selectedNodes);        
+            double t_ms = timer.toc_ms();
+            int score = computeObjective(randPath, distanceMatrix, nodes); 
+
+            randScores.push_back(score);
+            randTimes_ms.push_back(t_ms);
+            updateBest(bestRandScore, bestRandPath, randPath, score);
+        }
+
+        // --- Heuristics and local searches ---
+        int max_start_nodes = min<int>(200, static_cast<int>(nodes.size()));
+        for (int id_starting_node = 0; id_starting_node < max_start_nodes; ++id_starting_node) {
             cout << "Starting from node: " << id_starting_node << endl;
 
-            // --- Run heuristics ---
-            auto path1 = nearestNeighborEnd(distanceMatrix, nodes, id_starting_node);
-            auto path2 = nearestNeighborFlexible(distanceMatrix, nodes, id_starting_node);
-            auto path3 = greedyCycle(distanceMatrix, nodes, id_starting_node);
+            // --- Assignment 1 algorithms ---
+            Timer t1; t1.tic();
+            auto pathNNend = nearestNeighborEnd(distanceMatrix, nodes, id_starting_node);
+            double dt1 = t1.toc_ms();
 
-            auto path_Greedy1 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 1.0);
-            //auto path_Greedy2 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 3, 1.0);
-            auto path_Greedy3 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 0.5);
-            auto path_Greedy4 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 0.2);
-            auto path_Greedy5 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 0.7);
+            Timer t2; t2.tic();
+            auto pathNNflex = nearestNeighborFlexible(distanceMatrix, nodes, id_starting_node);
+            double dt2 = t2.toc_ms();
 
-            auto path_NNflex1 = nearestNeighborKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 1.0);
-            //auto path_NNflex2 = nearestNeighborKRegretWeighted(distanceMatrix, nodes, id_starting_node, 3, 1.0);
-            auto path_NNflex3 = nearestNeighborKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 0.5);
-            auto path_NNflex4 = nearestNeighborKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 0.2);
-            auto path_NNflex5 = nearestNeighborKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 0.7);
+            Timer t3; t3.tic();
+            auto pathGreedy = greedyCycle(distanceMatrix, nodes, id_starting_node);
+            double dt3 = t3.toc_ms();
 
-            // --- Compute objectives ---
-            if (!path1.empty()) { int cost = computeObjective(path1, distanceMatrix, nodes); nnEndScores.push_back(cost); updateBest(bestScoreNNend, bestPath1, path1, cost); }
-            if (!path2.empty()) { int cost = computeObjective(path2, distanceMatrix, nodes); nnFlexScores.push_back(cost); updateBest(bestScoreNNflex, bestPath2, path2, cost); }
-            if (!path3.empty()) { int cost = computeObjective(path3, distanceMatrix, nodes); greedyScores.push_back(cost); updateBest(bestScoreGreedy, bestPathGreedy, path3, cost); }
+            // --- Assignment 2 algorithms ---
+            Timer t_g2; t_g2.tic();
+            auto path_Greedy_w1 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 1.0);
+            double dt_g2 = t_g2.toc_ms();
 
-            if (!path_Greedy1.empty()) { int cost = computeObjective(path_Greedy1, distanceMatrix, nodes); greedy2Regret.push_back(cost); updateBest(bestScoreGreedy2Regret, bestPathGreedy2Regret, path_Greedy1, cost); }
-            //if (!path_Greedy2.empty()) { int cost = computeObjective(path_Greedy2, distanceMatrix, nodes); greedy3Regret.push_back(cost); updateBest(bestScoreGreedy3Regret, bestPathGreedy3Regret, path_Greedy2, cost); }
-            if (!path_Greedy3.empty()) { int cost = computeObjective(path_Greedy3, distanceMatrix, nodes); greedy2RegretWSum.push_back(cost); updateBest(bestScoreGreedy2RegretWeighted, bestPathGreedy2RegretWSum, path_Greedy3, cost); }
-            if (!path_Greedy4.empty()) { int cost = computeObjective(path_Greedy4, distanceMatrix, nodes); greedy2RegretWSum1.push_back(cost); updateBest(bestScoreGreedy2RegretWeighted1, bestPathGreedy2RegretWSum1, path_Greedy4, cost); }
-            if (!path_Greedy5.empty()) { int cost = computeObjective(path_Greedy5, distanceMatrix, nodes); greedy2RegretWSum2.push_back(cost); updateBest(bestScoreGreedy2RegretWeighted2, bestPathGreedy2RegretWSum2, path_Greedy5, cost); }
+            Timer t_g05; t_g05.tic();
+            auto path_Greedy_w05 = greedyCycleKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 0.5);
+            double dt_g05 = t_g05.toc_ms();
 
-            if (!path_NNflex1.empty()) { int cost = computeObjective(path_NNflex1, distanceMatrix, nodes); nnFlex2Regret.push_back(cost); updateBest(bestScoreNNflex2Regret, bestPathNNflex2Regret, path_NNflex1, cost); }
-            //if (!path_NNflex2.empty()) { int cost = computeObjective(path_NNflex2, distanceMatrix, nodes); nnFlex3Regret.push_back(cost); updateBest(bestScoreNNflex3Regret, bestPathNNflex3Regret, path_NNflex2, cost); }
-            if (!path_NNflex3.empty()) { int cost = computeObjective(path_NNflex3, distanceMatrix, nodes); nnFlex2RegretWSum.push_back(cost); updateBest(bestScoreNNflex2RegretWeighted, bestPathNNflex2RegretWSum, path_NNflex3, cost); }
-            if (!path_NNflex4.empty()) { int cost = computeObjective(path_NNflex4, distanceMatrix, nodes); nnFlex2RegretWSum1.push_back(cost); updateBest(bestScoreNNflex2RegretWeighted1, bestPathNNflex2RegretWSum1, path_NNflex4, cost); }
-            if (!path_NNflex5.empty()) { int cost = computeObjective(path_NNflex5, distanceMatrix, nodes); nnFlex2RegretWSum2.push_back(cost); updateBest(bestScoreNNflex2RegretWeighted2, bestPathNNflex2RegretWSum2, path_NNflex5, cost); }
+            Timer t_nf2; t_nf2.tic();
+            auto path_NNflex_w1 = nearestNeighborKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 1.0);
+            double dt_nf2 = t_nf2.toc_ms();
 
-            // --- Local Search Improvements ---
-            // ASSIGNMENT PART : For greedy starting solutions use each of the 200 nodes as the starting node for the greedy heuristic. (don't know if i do that lol ?)
-            // Greedy 2-regret Heuristic
-            cout << "\nApplying Local Search on Best Greedy Solution..." << endl;
-            auto path_greedy2regret_greedy_intra_node = greedy_local_search(path_Greedy4, distanceMatrix, "node", nodes);
-            auto path_greedy2regret_greedy_intra_edge = greedy_local_search(path_Greedy4, distanceMatrix, "edge", nodes);
-            auto path_greedy2regret_steepest_intra_node = steepest_local_search(path_Greedy4, distanceMatrix, "node", nodes);
-            auto path_greedy2regret_steepest_intra_edge = steepest_local_search(path_Greedy4, distanceMatrix, "edge", nodes);
+            Timer t_nf05; t_nf05.tic();
+            auto path_NNflex_w05 = nearestNeighborKRegretWeighted(distanceMatrix, nodes, id_starting_node, 2, 0.5);
+            double dt_nf05 = t_nf05.toc_ms();
 
-            auto greedy2regret_greedy_intra_node_score = computeObjective(path_greedy2regret_greedy_intra_node, distanceMatrix, nodes);
-            auto greedy2regret_greedy_intra_edge_score = computeObjective(path_greedy2regret_greedy_intra_edge, distanceMatrix, nodes);
-            auto greedy2regret_steepest_intra_node_score = computeObjective(path_greedy2regret_steepest_intra_node, distanceMatrix, nodes);
-            auto greedy2regret_steepest_intra_edge_score = computeObjective(path_greedy2regret_steepest_intra_edge, distanceMatrix, nodes);
+            auto process = [&](const vector<int>& path, vector<int>& scoresVec, vector<double>& timesVec_ms, vector<int>& bestPathVec, int& bestScoreRef, double time_ms) {
+                if (path.empty()) return;
+                int cost = computeObjective(path, distanceMatrix, nodes);
+                scoresVec.push_back(cost);
+                timesVec_ms.push_back(time_ms);
+                updateBest(bestScoreRef, bestPathVec, path, cost);
+            };
 
-            
+            process(pathNNend, nnEndScores, nnEndTimes_ms, bestNNEnd, bestScoreNNend, dt1);
+            process(pathNNflex, nnFlexScores, nnFlexTimes_ms, bestNNFlex, bestScoreNNflex, dt2);
+            process(pathGreedy, greedyScores, greedyTimes_ms, bestGreedy, bestScoreGreedy, dt3);
+
+            process(path_Greedy_w1, greedy2Regret, greedy2RegretTimes_ms, bestG2, bestScoreGreedy2Regret, dt_g2);
+            process(path_Greedy_w05, greedy2RegretWSum, greedy2RegretWSumTimes_ms, bestG05, bestScoreGreedy2RegretWeighted, dt_g05);
+
+            process(path_NNflex_w1, nnFlex2Regret, nnFlex2RegretTimes_ms, bestNNF2, bestScoreNNflex2Regret, dt_nf2);
+            process(path_NNflex_w05, nnFlex2RegretWSum, nnFlex2RegretWSumTimes_ms, bestNNF05, bestScoreNNflex2RegretWeighted, dt_nf05);
+
+            // --- Assignment 3: Local search ---
+            auto applyLocal = [&](const vector<int>& basePath,
+                                  const string& method,
+                                  const string& moveType,
+                                  vector<int>& scoresVec,
+                                  vector<double>& timesVec_ms,
+                                  vector<int>& bestPathVec,
+                                  int& bestScoreRef) {
+                if (basePath.empty()) return;
+                Timer tloc; tloc.tic();
+                vector<int> newPath;
+                if (method == "greedy") {
+                    newPath = greedy_local_search(basePath, distanceMatrix, moveType, nodes);
+                } else {
+                    newPath = steepest_local_search(basePath, distanceMatrix, moveType, nodes);
+                }
+                double dtloc = tloc.toc_ms();
+                if (!newPath.empty()) {
+                    int cost = computeObjective(newPath, distanceMatrix, nodes);
+                    scoresVec.push_back(cost);
+                    timesVec_ms.push_back(dtloc);
+                    updateBest(bestScoreRef, bestPathVec, newPath, cost);
+                }
+            };
+
+            // Local searches on Greedy
+            applyLocal(pathGreedy, "greedy", "node", localGreedyNodeScores_Greedy, localGreedyNodeTimes_Greedy_ms, bestLocalGreedyNode_Greedy, bestLocalGreedyNodeScore_Greedy);
+            applyLocal(pathGreedy, "greedy", "edge", localGreedyEdgeScores_Greedy, localGreedyEdgeTimes_Greedy_ms, bestLocalGreedyEdge_Greedy, bestLocalGreedyEdgeScore_Greedy);
+            applyLocal(pathGreedy, "steepest", "node", localSteepestNodeScores_Greedy, localSteepestNodeTimes_Greedy_ms, bestLocalSteepestNode_Greedy, bestLocalSteepestNodeScore_Greedy);
+            applyLocal(pathGreedy, "steepest", "edge", localSteepestEdgeScores_Greedy, localSteepestEdgeTimes_Greedy_ms, bestLocalSteepestEdge_Greedy, bestLocalSteepestEdgeScore_Greedy);
+
+            // Local searches on Random path
+            applyLocal(bestRandPath, "greedy", "node", localGreedyNodeScores_Rand, localGreedyNodeTimes_Rand_ms, bestLocalGreedyNode_Rand, bestLocalGreedyNodeScore_Rand);
+            applyLocal(bestRandPath, "greedy", "edge", localGreedyEdgeScores_Rand, localGreedyEdgeTimes_Rand_ms, bestLocalGreedyEdge_Rand, bestLocalGreedyEdgeScore_Rand);
+            applyLocal(bestRandPath, "steepest", "node", localSteepestNodeScores_Rand, localSteepestNodeTimes_Rand_ms, bestLocalSteepestNode_Rand, bestLocalSteepestNodeScore_Rand);
+            applyLocal(bestRandPath, "steepest", "edge", localSteepestEdgeScores_Rand, localSteepestEdgeTimes_Rand_ms, bestLocalSteepestEdge_Rand, bestLocalSteepestEdgeScore_Rand);
         }
 
-
-        // --- Save results for visualization ---
-        string visFile = "../visualization/" + tsp_type + "_paths.csv";
+        // --- Save best paths for visualization ---
+        string visDir = "../visualization";
+        fs::create_directories(visDir);
+        string visFile = visDir + "/" + tsp_type + "_paths.csv";
         delete_content_file(visFile);
 
-        saveResults(visFile, nodes, bestRandPath, "Random Search");
-        saveResults(visFile, nodes, bestPath1, "Nearest Neighbor (End)");
-        saveResults(visFile, nodes, bestPath2, "Nearest Neighbor (Flexible)");
-        saveResults(visFile, nodes, bestPathGreedy, "Greedy Cycle");
+        saveResults(visFile, nodes, bestNNEnd, "NN End");
+        saveResults(visFile, nodes, bestNNFlex, "NN Flexible");
+        saveResults(visFile, nodes, bestGreedy, "Greedy Cycle");
+        saveResults(visFile, nodes, bestG2, "Greedy 2-Regret");
+        saveResults(visFile, nodes, bestG05, "Greedy 2-Regret (w=0.5)");
+        saveResults(visFile, nodes, bestNNF2, "NN-Flex 2-Regret");
+        saveResults(visFile, nodes, bestNNF05, "NN-Flex 2-Regret (w=0.5)");
 
-        saveResults(visFile, nodes, bestPathGreedy2Regret, "Greedy Cycle (2-Regret)");
-        //saveResults(visFile, nodes, bestPathGreedy3Regret, "Greedy Cycle (3-Regret)");
-        saveResults(visFile, nodes, bestPathGreedy2RegretWSum, "Greedy Cycle (2-Regret Weighted 0.5)");
-        saveResults(visFile, nodes, bestPathGreedy2RegretWSum1, "Greedy Cycle (2-Regret Weighted 0.2)");
-        saveResults(visFile, nodes, bestPathGreedy2RegretWSum2, "Greedy Cycle (2-Regret Weighted 0.7)");
+        saveResults(visFile, nodes, bestLocalGreedyNode_Greedy, "Local Greedy Node (Greedy Cycle)");
+        saveResults(visFile, nodes, bestLocalGreedyEdge_Greedy, "Local Greedy Edge (Greedy Cycle)");
+        saveResults(visFile, nodes, bestLocalSteepestNode_Greedy, "Local Steepest Node (Greedy Cycle)");
+        saveResults(visFile, nodes, bestLocalSteepestEdge_Greedy, "Local Steepest Edge (Greedy Cycle)");
+        saveResults(visFile, nodes, bestLocalGreedyNode_Rand, "Local Greedy Node (Random Path)");
+        saveResults(visFile, nodes, bestLocalGreedyEdge_Rand, "Local Greedy Edge (Random Path)");
+        saveResults(visFile, nodes, bestLocalSteepestNode_Rand, "Local Steepest Node (Random Path)");
+        saveResults(visFile, nodes, bestLocalSteepestEdge_Rand, "Local Steepest Edge (Random Path)");
 
-        saveResults(visFile, nodes, bestPathNNflex2Regret, "NN-Flexible (2-Regret)");
-        //saveResults(visFile, nodes, bestPathNNflex3Regret, "NN-Flexible (3-Regret)");
-        saveResults(visFile, nodes, bestPathNNflex2RegretWSum, "NN-Flexible (2-Regret Weighted 0.5)");
-        saveResults(visFile, nodes, bestPathNNflex2RegretWSum1, "NN-Flexible (2-Regret Weighted 0.2)");
-        saveResults(visFile, nodes, bestPathNNflex2RegretWSum2, "NN-Flexible (2-Regret Weighted 0.7)");
+        // --- LaTeX tables ---
+        string resultsDir = "../results";
+        fs::create_directories(resultsDir);
+        string texFile = resultsDir + "/" + tsp_type + "_results_table.tex";
+        string texTimeFile = resultsDir + "/" + tsp_type + "_timings_table.tex";
 
-        // --- Save LaTeX table ---
-        string texFile = "../results/" + tsp_type + "_results_table.tex";
         ofstream texOut(texFile);
-        if (!texOut.is_open()) {
-            cerr << "Error: could not create LaTeX file: " << texFile << endl;
-            continue;
-        }
+        ofstream texTimeOut(texTimeFile);
 
-        texOut << "\\begin{table}[h!]\n\\centering\n\\begin{tabular}{lc}\n\\hline\n";
-        texOut << "Method & Avg (Min, Max) \\\\\n\\hline\n";
-
-        auto writeRowCompact = [&](const string& name, const vector<int>& values) {
-            if (values.empty()) return;
-            int minVal = *min_element(values.begin(), values.end());
-            int maxVal = *max_element(values.begin(), values.end());
-            double avgVal = accumulate(values.begin(), values.end(), 0.0) / values.size();
-            texOut << fixed << setprecision(2);
-            texOut << name << " & " << avgVal << " (" << minVal << ", " << maxVal << ") \\\\\n";
+        auto writeRowCompact = [&](ofstream& out, const string& name, const vector<int>& vals) {
+            if (vals.empty()) return;
+            int minv = *min_element(vals.begin(), vals.end());
+            int maxv = *max_element(vals.begin(), vals.end());
+            double avgv = average_ints(vals);
+            out << fixed << setprecision(2);
+            out << name << " & " << avgv << " (" << minv << ", " << maxv << ") \\\\\n";
         };
 
-        writeRowCompact("Random Search", randScores);
-        writeRowCompact("Nearest Neighbor (End)", nnEndScores);
-        writeRowCompact("Nearest Neighbor (Flexible)", nnFlexScores);
-        writeRowCompact("Greedy Cycle", greedyScores);
-        writeRowCompact("Greedy Cycle (2-Regret)", greedy2Regret);
-        //writeRowCompact("Greedy Cycle (3-Regret)", greedy3Regret);
-        writeRowCompact("Greedy Cycle (2-Regret Weighted 0.5)", greedy2RegretWSum);
-        writeRowCompact("Greedy Cycle (2-Regret Weighted 0.2)", greedy2RegretWSum1);
-        writeRowCompact("Greedy Cycle (2-Regret Weighted 0.7)", greedy2RegretWSum2);
-        writeRowCompact("NN-Flexible (2-Regret)", nnFlex2Regret);
-        //writeRowCompact("NN-Flexible (3-Regret)", nnFlex3Regret);
-        writeRowCompact("NN-Flexible (2-Regret Weighted 0.5)", nnFlex2RegretWSum);
-        writeRowCompact("NN-Flexible (2-Regret Weighted 0.2)", nnFlex2RegretWSum1);
-        writeRowCompact("NN-Flexible (2-Regret Weighted 0.7)", nnFlex2RegretWSum2);
+        auto writeRowTime = [&](ofstream& out, const string& name, const vector<double>& vals_ms) {
+            if (vals_ms.empty()) return;
+            vector<double> vals_s;
+            vals_s.reserve(vals_ms.size());
+            for (double v : vals_ms) vals_s.push_back(v / 1000.0);
+            double minv = *min_element(vals_s.begin(), vals_s.end());
+            double maxv = *max_element(vals_s.begin(), vals_s.end());
+            double avgv = average_doubles(vals_s);
+            out << fixed << setprecision(4);
+            out << name << " & " << avgv << " (" << minv << ", " << maxv << ") \\\\\n";
+        };
 
-        texOut << "\\hline\n\\end{tabular}\n";
-        texOut << "\\caption{Average, minimum, and maximum objective values for " << tsp_type << "}\n";
-        texOut << "\\label{tab:" << tsp_type << "_results}\n\\end{table}\n";
+        // Objective Table
+        texOut << "\\begin{table}[h!]\n\\centering\n\\begin{tabular}{lc}\n\\hline\nMethod & Avg (Min, Max) \\\\\n\\hline\n";
+        writeRowCompact(texOut, "Random Path", randScores);
+        writeRowCompact(texOut, "Nearest Neighbor (End)", nnEndScores);
+        writeRowCompact(texOut, "Nearest Neighbor (Flexible)", nnFlexScores);
+        writeRowCompact(texOut, "Greedy Cycle", greedyScores);
+        writeRowCompact(texOut, "Greedy 2-Regret", greedy2Regret);
+        writeRowCompact(texOut, "Greedy 2-Regret (w=0.5)", greedy2RegretWSum);
+        writeRowCompact(texOut, "NN-Flex 2-Regret", nnFlex2Regret);
+        writeRowCompact(texOut, "NN-Flex 2-Regret (w=0.5)", nnFlex2RegretWSum);
+
+        writeRowCompact(texOut, "Local Greedy Node (Greedy Cycle)", localGreedyNodeScores_Greedy);
+        writeRowCompact(texOut, "Local Greedy Edge (Greedy Cycle)", localGreedyEdgeScores_Greedy);
+        writeRowCompact(texOut, "Local Steepest Node (Greedy Cycle)", localSteepestNodeScores_Greedy);
+        writeRowCompact(texOut, "Local Steepest Edge (Greedy Cycle)", localSteepestEdgeScores_Greedy);
+
+        writeRowCompact(texOut, "Local Greedy Node (Random Path)", localGreedyNodeScores_Rand);
+        writeRowCompact(texOut, "Local Greedy Edge (Random Path)", localGreedyEdgeScores_Rand);
+        writeRowCompact(texOut, "Local Steepest Node (Random Path)", localSteepestNodeScores_Rand);
+        writeRowCompact(texOut, "Local Steepest Edge (Random Path)", localSteepestEdgeScores_Rand);
+        texOut << "\\hline\n\\end{tabular}\n\\caption{Average, min, and max objective values for " << tsp_type << "}\n\\label{tab:" << tsp_type << "_scores}\n\\end{table}\n";
         texOut.close();
 
-        cout << "\nLaTeX table saved to: " << texFile << endl;
-        cout << "\nFinished processing all datasets.\n";
+        // Timing Table
+        texTimeOut << "\\begin{table}[h!]\n\\centering\n\\begin{tabular}{lc}\n\\hline\nMethod & Time (avg, min, max) [s] \\\\\n\\hline\n";
+        writeRowTime(texTimeOut, "Random Path", randTimes_ms);
+        writeRowTime(texTimeOut, "Nearest Neighbor (End)", nnEndTimes_ms);
+        writeRowTime(texTimeOut, "Nearest Neighbor (Flexible)", nnFlexTimes_ms);
+        writeRowTime(texTimeOut, "Greedy Cycle", greedyTimes_ms);
+        writeRowTime(texTimeOut, "Greedy 2-Regret", greedy2RegretTimes_ms);
+        writeRowTime(texTimeOut, "Greedy 2-Regret (w=0.5)", greedy2RegretWSumTimes_ms);
+        writeRowTime(texTimeOut, "NN-Flex 2-Regret", nnFlex2RegretTimes_ms);
+        writeRowTime(texTimeOut, "NN-Flex 2-Regret (w=0.5)", nnFlex2RegretWSumTimes_ms);
+
+        writeRowTime(texTimeOut, "Local Greedy Node (Greedy Cycle)", localGreedyNodeTimes_Greedy_ms);
+        writeRowTime(texTimeOut, "Local Greedy Edge (Greedy Cycle)", localGreedyEdgeTimes_Greedy_ms);
+        writeRowTime(texTimeOut, "Local Steepest Node (Greedy Cycle)", localSteepestNodeTimes_Greedy_ms);
+        writeRowTime(texTimeOut, "Local Steepest Edge (Greedy Cycle)", localSteepestEdgeTimes_Greedy_ms);
+
+        writeRowTime(texTimeOut, "Local Greedy Node (Random Path)", localGreedyNodeTimes_Rand_ms);
+        writeRowTime(texTimeOut, "Local Greedy Edge (Random Path)", localGreedyEdgeTimes_Rand_ms);
+        writeRowTime(texTimeOut, "Local Steepest Node (Random Path)", localSteepestNodeTimes_Rand_ms);
+        writeRowTime(texTimeOut, "Local Steepest Edge (Random Path)", localSteepestEdgeTimes_Rand_ms);
+        texTimeOut << "\\hline\n\\end{tabular}\n\\caption{Average, minimum, and maximum execution times for " << tsp_type << "}\n\\label{tab:" << tsp_type << "_timings}\n\\end{table}\n";
+        texTimeOut.close();
+
+        cout << "Results and timing tables generated for " << tsp_type << endl;
+        cout << "-> " << texFile << endl;
+        cout << "-> " << texTimeFile << endl;
     }
 
+    cout << "\nAll TSP datasets processed!" << endl;
     return 0;
 }
