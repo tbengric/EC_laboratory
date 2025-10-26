@@ -1,23 +1,32 @@
-
 import pandas as pd
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
 import io
 import os
-import textwrap
 
 path_files = ["TSPA_paths.csv", "TSPB_paths.csv"]
 full_files = ["../../data/TSPA.csv", "../../data/TSPB.csv"]
 output_dir = "plots"
 
 # Get the global MIN and MAX costs
-cost_limits = {}
+all_nodes = {}
 for file_path in full_files:
-    df_full = pd.read_csv(file_path, sep=";", header=None, names=["x","y","cost"])
-    min_cost = df_full["cost"].min()
-    max_cost = df_full["cost"].max()
+    df_full = pd.read_csv(file_path, sep=";", header=None, names=["x","y","cost","id"])
     base_name = os.path.splitext(os.path.basename(file_path))[0]
-    cost_limits[base_name] = (min_cost, max_cost)
+    all_nodes[base_name] = df_full
+
+# Compute global min and max cost for all nodes
+all_costs = pd.concat([df["cost"] for df in all_nodes.values()])
+global_min_cost = all_costs.min()
+global_max_cost = all_costs.max()
+
+
+# Node size range
+min_size, max_size = 200, 1300
+
+# Precompute sizes for all nodes using global cost range
+sizes_nodes_dict = {}
+for name, df_nodes in all_nodes.items():
+    sizes_nodes_dict[name] = min_size + (df_nodes['cost'] - global_min_cost) / (global_max_cost - global_min_cost) * (max_size - min_size)
 
 # Go through each TSP type
 for file_path in path_files:
@@ -44,52 +53,55 @@ for file_path in path_files:
         blocks[current_name] = pd.read_csv(io.StringIO("\n".join(current_lines)))
 
     base_name = os.path.splitext(os.path.basename(file_path))[0].split("_")[0]
-    min_cost, max_cost = cost_limits[base_name]
+    df_nodes = all_nodes[base_name]
+    sizes_nodes = sizes_nodes_dict[base_name]
+
     print(f"Read file: {file_path}")
 
     # Plot for each method
     for algo_name, df in blocks.items():
-        fig, ax = plt.subplots(figsize=(12, 10))  
+        if df.empty:
+            print(f"Skipping empty block: {algo_name}")
+            continue
 
-        # Colors
-        norm = plt.Normalize(min_cost, max_cost)
-        cmap = cm.viridis
-        node_colors = cmap(norm(df['cost']))
-        cbar = plt.colorbar(
-            cm.ScalarMappable(norm=norm, cmap=cmap),
-            ax=ax,
-            fraction=0.02, 
-            pad=0.02       
-        )
-        cbar.set_label("Node Cost")
+        fig, ax = plt.subplots(figsize=(20, 12))  
 
-        # Edges
+        # Sizes for the algorithm path nodes
+        sizes_path = min_size + (df['cost'] - global_min_cost) / (global_max_cost - global_min_cost) * (max_size - min_size)
+
+        # Plot all nodes as background
+        ax.scatter(df_nodes.x, df_nodes.y, s=sizes_nodes, c='lightgray', edgecolor='black', linewidths=1, zorder=1, label='All nodes')
+
+        # Plot edges of the algorithm path
         for i in range(len(df) - 1):
-            x0, y0 = df.x[i], df.y[i]
-            x1, y1 = df.x[i + 1], df.y[i + 1]
-            ax.plot([x0, x1], [y0, y1], color='gray', linewidth=1.2, alpha=0.8)
-            mid_x, mid_y = (x0 + x1) / 2, (y0 + y1) / 2
-            ax.text(mid_x, mid_y, str(i), fontsize=7, color='black', ha='center', va='center')
+            x0, y0 = df.x.iloc[i], df.y.iloc[i]
+            x1, y1 = df.x.iloc[i+1], df.y.iloc[i+1]
+            ax.plot([x0, x1], [y0, y1], color='blue', linewidth=2.5, alpha=0.9)
 
-        # Last Edge
-        ax.plot([df.x.iloc[-1], df.x.iloc[0]], [df.y.iloc[-1], df.y.iloc[0]], color='gray', linewidth=1.2, alpha=0.8)
-        mid_x = (df.x.iloc[-1] + df.x.iloc[0]) / 2
-        mid_y = (df.y.iloc[-1] + df.y.iloc[0]) / 2
-        ax.text(mid_x, mid_y, str(len(df) - 1), fontsize=7, color='black', ha='center', va='center')
+        # Plot algorithm path nodes
+        ax.scatter(df.x, df.y, s=sizes_path, c='skyblue', edgecolor='black', linewidths=1.2, zorder=2, label='Algorithm path')
 
-        # Make scatter
-        sc = ax.scatter(df.x, df.y, s=120, c=node_colors, edgecolor='black', linewidths=0.7, zorder=3)
-        
-        x_margin = (df.x.max() - df.x.min()) * 0.1
-        y_margin = (df.y.max() - df.y.min()) * 0.1
-        ax.set_xlim(df.x.min() - x_margin, df.x.max() + x_margin)
-        ax.set_ylim(df.y.min() - y_margin, df.y.max() + y_margin)
+        # Highlight start node
+        start_node = df.iloc[0]
+        start_size = sizes_path.iloc[0] if hasattr(sizes_path, 'iloc') else sizes_path
+        ax.scatter(start_node.x, start_node.y, s=start_size, c='red', edgecolor='black', linewidths=1.2, zorder=4, label='Start node')
+
+        # Add node IDs
+        for i, row in df.iterrows():
+            ax.text(row.x, row.y, str(row['id']), fontsize=10, color='black', ha='center', va='center', zorder=5)
+
+        # Margins
+        x_margin = (df_nodes.x.max() - df_nodes.x.min()) * 0.1
+        y_margin = (df_nodes.y.max() - df_nodes.y.min()) * 0.1
+        ax.set_xlim(df_nodes.x.min() - x_margin, df_nodes.x.max() + x_margin)
+        ax.set_ylim(df_nodes.y.min() - y_margin, df_nodes.y.max() + y_margin)
 
         ax.set_aspect('equal')
         ax.set_title(f"{base_name} - {algo_name}", fontsize=14, weight='bold')
         ax.set_xlabel("X")
         ax.set_ylabel("Y")
         ax.grid(True, alpha=0.3)
+        ax.legend(fontsize=12)
 
         # Add best path
         best_path_text = f"Best Path: {' - '.join(list(df['id'].astype(str)))} "
