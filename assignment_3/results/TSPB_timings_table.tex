@@ -1,0 +1,27 @@
+\begin{table}[h!]
+\centering
+\begin{tabular}{lc}
+\hline
+Method & Time (avg, min, max) [s] \\
+\hline
+Random Path & 0.0000 (0.0000, 0.0001) \\
+Nearest Neighbor (End) & 0.0002 (0.0001, 0.0009) \\
+Nearest Neighbor (Flexible) & 0.2222 (0.1873, 0.2801) \\
+Greedy Cycle & 0.2159 (0.1989, 0.3213) \\
+Greedy 2-Regret & 0.0318 (0.0287, 0.0478) \\
+Greedy 2-Regret (w=0.5) & 0.0300 (0.0264, 0.0469) \\
+NN-Flex 2-Regret & 0.0331 (0.0305, 0.0432) \\
+NN-Flex 2-Regret (w=0.5) & 0.0325 (0.0298, 0.0441) \\
+Local Greedy Node (Greedy Cycle) & 0.0045 (0.0018, 0.0107) \\
+Local Greedy Edge (Greedy Cycle) & 0.0048 (0.0021, 0.0159) \\
+Local Steepest Node (Greedy Cycle) & 0.0022 (0.0010, 0.0068) \\
+Local Steepest Edge (Greedy Cycle) & 0.0018 (0.0006, 0.0051) \\
+Local Greedy Node (Random Path) & 0.1370 (0.1148, 0.1933) \\
+Local Greedy Edge (Random Path) & 0.1367 (0.1134, 0.1970) \\
+Local Steepest Node (Random Path) & 0.0321 (0.0198, 0.0444) \\
+Local Steepest Edge (Random Path) & 0.0224 (0.0118, 0.0712) \\
+\hline
+\end{tabular}
+\caption{Average, minimum, and maximum execution times for TSPB}
+\label{tab:TSPB_timings}
+\end{table}
