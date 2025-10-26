@@ -18,13 +18,16 @@ namespace fs = std::filesystem;
 
 // --- Timer ---
 struct Timer {
-    chrono::high_resolution_clock::time_point start;
+    std::chrono::high_resolution_clock::time_point start;
 
-    void tic() { start = chrono::high_resolution_clock::now(); }
+    void tic() {
+        start = std::chrono::high_resolution_clock::now();
+    }
 
-    double toc_ms() {
-        auto end = chrono::high_resolution_clock::now();
-        return chrono::duration<double, std::milli>(end - start).count();
+    double toc_ms() const {
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration<double, std::micro>(end - start);
+        return duration.count(); // mikrosekundy
     }
 };
 
