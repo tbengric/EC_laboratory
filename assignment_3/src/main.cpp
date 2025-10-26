@@ -265,10 +265,10 @@ int main() {
                 }
             };
             // Local searches on Greedy
-            applyLocal(pathGreedy, "greedy", "node", localGreedyNodeScores_Greedy, localGreedyNodeTimes_Greedy_ms, bestLocalGreedyNode_Greedy, bestLocalGreedyNodeScore_Greedy);
-            applyLocal(pathGreedy, "greedy", "edge", localGreedyEdgeScores_Greedy, localGreedyEdgeTimes_Greedy_ms, bestLocalGreedyEdge_Greedy, bestLocalGreedyEdgeScore_Greedy);
-            applyLocal(pathGreedy, "steepest", "node", localSteepestNodeScores_Greedy, localSteepestNodeTimes_Greedy_ms, bestLocalSteepestNode_Greedy, bestLocalSteepestNodeScore_Greedy);
-            applyLocal(pathGreedy, "steepest", "edge", localSteepestEdgeScores_Greedy, localSteepestEdgeTimes_Greedy_ms, bestLocalSteepestEdge_Greedy, bestLocalSteepestEdgeScore_Greedy);
+            applyLocal(bestG05, "greedy", "node", localGreedyNodeScores_Greedy, localGreedyNodeTimes_Greedy_ms, bestLocalGreedyNode_Greedy, bestLocalGreedyNodeScore_Greedy);
+            applyLocal(bestG05, "greedy", "edge", localGreedyEdgeScores_Greedy, localGreedyEdgeTimes_Greedy_ms, bestLocalGreedyEdge_Greedy, bestLocalGreedyEdgeScore_Greedy);
+            applyLocal(bestG05, "steepest", "node", localSteepestNodeScores_Greedy, localSteepestNodeTimes_Greedy_ms, bestLocalSteepestNode_Greedy, bestLocalSteepestNodeScore_Greedy);
+            applyLocal(bestG05, "steepest", "edge", localSteepestEdgeScores_Greedy, localSteepestEdgeTimes_Greedy_ms, bestLocalSteepestEdge_Greedy, bestLocalSteepestEdgeScore_Greedy);
 
             // Local searches on Random path
             applyLocal(bestRandPath, "greedy", "node", localGreedyNodeScores_Rand, localGreedyNodeTimes_Rand_ms, bestLocalGreedyNode_Rand, bestLocalGreedyNodeScore_Rand);
