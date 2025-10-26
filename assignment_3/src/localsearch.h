@@ -104,9 +104,9 @@ vector<int> steepest_local_search(const vector<int>& initial_path, const vector<
             }
         }
 
-        if (intra_method == "node"){
-            for (int i = 0; i < current_path_size; ++i) {
-                for (int j = i + 1; j < current_path_size; ++j) {
+        if (intra_method == "node") {
+            for (int i = 1; i < current_path_size - 1; ++i) {
+                for (int j = i + 1; j < current_path_size - 1; ++j) {
                     double delta = delta_intra_node(current_path, i, j, dist_matrix);
                     if (delta < best_delta) {
                         best_delta = delta;
@@ -116,9 +116,9 @@ vector<int> steepest_local_search(const vector<int>& initial_path, const vector<
                     }
                 }
             }
-        } else if (intra_method == "edge"){
-            for (int i = 0; i < current_path_size; ++i) {
-                for (int j = i + 2; j < current_path_size; ++j) {
+        }else if (intra_method == "edge") {
+            for (int i = 0; i < current_path_size - 1; ++i) {
+                for (int j = i + 2; j < current_path_size - 1; ++j) {
                     double delta = delta_intra_edge(current_path, i, j, dist_matrix);
                     if (delta < best_delta) {
                         best_delta = delta;
@@ -130,7 +130,7 @@ vector<int> steepest_local_search(const vector<int>& initial_path, const vector<
             }
         }
 
-        for (int i = 0; i < current_path_size; ++i) {
+        for (int i = 1; i < current_path_size - 1; ++i) {
             for (int not_selected_node : not_selected_nodes) {
                 double delta = delta_inter_node(current_path, i, not_selected_node, dist_matrix, nodes);
                 if (delta < best_delta) {
@@ -155,10 +155,10 @@ vector<int> steepest_local_search(const vector<int>& initial_path, const vector<
             } else if (best_move_type == 2) {
                 // inter-node swap
                 current_path[best_first_node] = best_not_selected_node;
-            } 
+            }
         } else {
                 break; // no improving move found
-            }
+        }
         
 
     }
@@ -185,14 +185,14 @@ vector<int> greedy_local_search(const vector<int>& initial_path, const vector<ve
         vector<tuple<int, int, int, int>> possible_moves; // move_type, first_node, second_node, not_selected_node (in case of inter_node)
 
         if (intra_method == "node"){
-            for (int i = 0; i < current_path_size; ++i) {
-                for (int j = i + 1; j < current_path_size; ++j) {
+            for (int i = 1; i < current_path_size - 1; ++i) {          // <-- pomijamy start/koniec
+                for (int j = i + 1; j < current_path_size - 1; ++j) {
                     possible_moves.emplace_back(0, i, j, -1);
                 }
             }
         } else if (intra_method == "edge"){
-            for (int i = 0; i < current_path_size; ++i) {
-                for (int j = i + 2; j < current_path_size; ++j) {
+            for (int i = 0; i < current_path_size - 1; ++i) {
+                for (int j = i + 2; j < current_path_size - 1; ++j) {  // <-- nie ruszamy ostatniego
                     possible_moves.emplace_back(1, i, j, -1);
                 }
             }

@@ -261,7 +261,6 @@ int main() {
                     updateBest(bestScoreRef, bestPathVec, newPath, cost);
                 }
             };
-
             // Local searches on Greedy
             applyLocal(pathGreedy, "greedy", "node", localGreedyNodeScores_Greedy, localGreedyNodeTimes_Greedy_ms, bestLocalGreedyNode_Greedy, bestLocalGreedyNodeScore_Greedy);
             applyLocal(pathGreedy, "greedy", "edge", localGreedyEdgeScores_Greedy, localGreedyEdgeTimes_Greedy_ms, bestLocalGreedyEdge_Greedy, bestLocalGreedyEdgeScore_Greedy);
