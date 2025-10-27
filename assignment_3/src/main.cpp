@@ -283,6 +283,7 @@ int main() {
         string visFile = visDir + "/" + tsp_type + "_paths.csv";
         delete_content_file(visFile);
 
+        saveResults(visFile, nodes, bestRandPath, "Random Search");
         saveResults(visFile, nodes, bestNNEnd, "NN End");
         saveResults(visFile, nodes, bestNNFlex, "NN Flexible");
         saveResults(visFile, nodes, bestGreedy, "Greedy Cycle");
