@@ -48,97 +48,81 @@ vector<int> steepest_local_search_candidates(
     const vector<Node>& nodes,
     int K = 10
 ) {
-    // --- 1. Check that path is cyclic ---
-    if (initial_path.empty() || initial_path.front() != initial_path.back()) {
-        throw std::runtime_error("Error: The first and last nodes of the path must be the same (cyclic path required).");
-    }
-
     vector<int> current_path = initial_path;
-    int current_path_size = current_path.size();
-    if (current_path_size < 2) return current_path;
-
+    int path_size = current_path.size();
     int n = nodes.size();
-    const auto& D = dist_matrix;
-    const auto& N = nodes;
 
-    // Precompute candidate neighbors for each node
     vector<vector<int>> candidate_neighbors = candidate_moves(nodes, dist_matrix, K);
 
-    vector<int> pos(n, -1); // position of each node in current_path
+    vector<int> pos(n, -1); 
 
     while (true) {
         double best_delta = 0.0;
         int best_move_type = -1; // 1: intra-edge, 2: inter-node
-        int best_first_node = -1, best_second_node = -1, best_not_selected_node = -1;
+        int best_first = -1, best_second = -1, best_new_node = -1;
 
-        // Build pos array
+        // Update positions of nodes in current_path
         fill(pos.begin(), pos.end(), -1);
-        for (int i = 0; i < current_path_size; ++i)
+        for (int i = 0; i < path_size; ++i)
             pos[current_path[i]] = i;
 
-        // === 1. Intra-route "edge" moves (2-opt) ===
-        for (int idx = 1; idx < current_path_size - 1; ++idx) { // start from 1 to keep first node fixed
-            int node_i = current_path[idx];
-            const auto& neighs = candidate_neighbors[node_i];
+        // 1. Intra-route moves (2-opt) 
+        for (int i = 0; i < path_size; ++i) {
+            int node_i = current_path[i];
+            for (int neigh : candidate_neighbors[node_i]) {
+                int j = pos[neigh];
+                if (j <= 0 || j >= path_size - 1 || std::abs(i - j) <= 1)
+                    continue;
 
-            for (int neigh : neighs) {
-                int jdx = pos[neigh];
-                if (jdx == -1 || idx == jdx || std::abs(idx - jdx) <= 1) continue;
-                if (jdx == 0 || jdx == current_path_size - 1) continue; // never move first/last node
-
-                double delta = delta_intra_edge(current_path, idx, jdx, D);
+                double delta = delta_intra_edge(current_path, i, j, dist_matrix);
                 if (delta < best_delta) {
                     best_delta = delta;
                     best_move_type = 1;
-                    best_first_node = idx;
-                    best_second_node = jdx;
+                    best_first = i;
+                    best_second = j;
                 }
             }
         }
 
-        // === 2. Inter-route moves (swap selected with not selected) ===
-        for (int idx = 1; idx < current_path_size - 1; ++idx) { // skip first/last node
-            int node_i = current_path[idx];
-            const auto& neighs = candidate_neighbors[node_i];
+        // 2. Inter-route moves (swap with not selected node) 
+        for (int i = 0; i < path_size - 1; ++i) {
+            int node_i = current_path[i];
+            for (int neigh : candidate_neighbors[node_i]) {
+                if (pos[neigh] != -1) 
+                    continue;
 
-            for (int neigh : neighs) {
-                if (pos[neigh] != -1) continue; // already in path
-
-                // Only consider moves that introduce a candidate edge (node_i -> neigh)
-                double delta = delta_inter_node(current_path, idx, neigh, D, N);
+                double delta = delta_inter_node(current_path, i, neigh, dist_matrix, nodes);
                 if (delta < best_delta) {
                     best_delta = delta;
                     best_move_type = 2;
-                    best_first_node = idx;
-                    best_not_selected_node = neigh;
+                    best_first = i;
+                    best_new_node = neigh;
                 }
             }
         }
 
-        // === 3. Apply best move ===
-        if (best_move_type != -1 && best_delta < 0.0) {
-            if (best_move_type == 1) { // intra-edge
-                int a = min(best_first_node, best_second_node);
-                int b = max(best_first_node, best_second_node);
-                reverse(current_path.begin() + a + 1, current_path.begin() + b + 1);
-                for (int t = a + 1; t <= b; ++t)
-                    pos[current_path[t]] = t;
-            } else if (best_move_type == 2) { // inter-node
-                int i = best_first_node;
-                int oldnode = current_path[i];
-                current_path[i] = best_not_selected_node;
-                pos[oldnode] = -1;
-                pos[best_not_selected_node] = i;
-            }
+        // 3. Apply best move 
+        if (best_move_type == 1) {
+            int a = min(best_first, best_second);
+            int b = max(best_first, best_second);
+            reverse(current_path.begin() + a + 1, current_path.begin() + b + 1);
 
-            // Ensure the cycle is maintained
-            // current_path.back() = current_path.front();
+            for (int t = a + 1; t <= b; ++t)
+                pos[current_path[t]] = t;
+
+        } else if (best_move_type == 2) {
+            int old_node = current_path[best_first];
+            current_path[best_first] = best_new_node;
+            pos[old_node] = -1;
+            pos[best_new_node] = best_first;
+
         } else {
             break; // no improving move found
         }
     }
-    if (initial_path.empty() || initial_path.front() != initial_path.back()) {
-        throw std::runtime_error("The first node is not the same as last");
+
+    if (current_path.front() != current_path.back()) {
+        throw std::runtime_error("The first node is not the same as the last node.");
     }
 
     return current_path;
