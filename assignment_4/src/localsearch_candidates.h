@@ -49,6 +49,7 @@ vector<int> steepest_local_search_candidates(
     int K = 10
 ) {
     vector<int> current_path = initial_path;
+    current_path.pop_back();
     int path_size = current_path.size();
     int n = nodes.size();
 
@@ -66,50 +67,57 @@ vector<int> steepest_local_search_candidates(
         for (int i = 0; i < path_size; ++i)
             pos[current_path[i]] = i;
 
-        // 1. Intra-route moves (2-opt) 
         for (int i = 0; i < path_size; ++i) {
             int node_i = current_path[i];
             for (int neigh : candidate_neighbors[node_i]) {
+
+                // 1. Check intra-route (2-opt) move
                 int j = pos[neigh];
-                if (j <= 0 || j >= path_size - 1 || std::abs(i - j) <= 1)
-                    continue;
-
-                double delta = delta_intra_edge(current_path, i, j, dist_matrix);
-                if (delta < best_delta) {
-                    best_delta = delta;
-                    best_move_type = 1;
-                    best_first = i;
-                    best_second = j;
+                if (j > 0 && j < path_size - 1 && std::abs(i - j) > 1) {
+                    double delta = delta_intra_edge(current_path, i, j, dist_matrix);
+                    if (delta < best_delta) {
+                        best_delta = delta;
+                        best_move_type = 1;
+                        best_first = i;
+                        best_second = j;
+                    }
                 }
-            }
-        }
 
-        // 2. Inter-route moves (swap with not selected node) 
-        for (int i = 0; i < path_size - 1; ++i) {
-            int node_i = current_path[i];
-            for (int neigh : candidate_neighbors[node_i]) {
-                if (pos[neigh] != -1) 
-                    continue;
-
-                double delta = delta_inter_node(current_path, i, neigh, dist_matrix, nodes);
-                if (delta < best_delta) {
-                    best_delta = delta;
-                    best_move_type = 2;
-                    best_first = i;
-                    best_new_node = neigh;
+                // 2. Check inter-route (swap with unselected node)
+                if (pos[neigh] == -1) {
+                    //swap with previous node
+                    
+                    if (i-1 >= 0) {
+                        double delta = delta_inter_node(current_path, i-1, neigh, dist_matrix, nodes);
+                        if (delta < best_delta) {
+                            best_delta = delta;
+                            best_move_type = 2;
+                            best_first = i-1;
+                            best_new_node = neigh;
+                        }
+                    }
+                    //swap with next node
+                    if (i+1 < path_size) {
+                        double delta = delta_inter_node(current_path, i+1, neigh, dist_matrix, nodes);
+                        if (delta < best_delta) {
+                            best_delta = delta;
+                            best_move_type = 2;
+                            best_first = i+1;
+                            best_new_node = neigh;
+                        }
+                    }
                 }
-            }
-        }
 
-        // 3. Apply best move 
+            } 
+        } 
+
+        // Apply best move
         if (best_move_type == 1) {
             int a = min(best_first, best_second);
             int b = max(best_first, best_second);
             reverse(current_path.begin() + a + 1, current_path.begin() + b + 1);
-
             for (int t = a + 1; t <= b; ++t)
                 pos[current_path[t]] = t;
-
         } else if (best_move_type == 2) {
             int old_node = current_path[best_first];
             current_path[best_first] = best_new_node;
@@ -117,10 +125,11 @@ vector<int> steepest_local_search_candidates(
             pos[best_new_node] = best_first;
 
         } else {
-            break; // no improving move found
+            break; // no improving move
         }
     }
 
+    current_path.push_back(current_path.front());
     if (current_path.front() != current_path.back()) {
         throw std::runtime_error("The first node is not the same as the last node.");
     }
