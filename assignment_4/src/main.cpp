@@ -204,16 +204,18 @@ int main() {
         int max_start_nodes = min<int>(200, static_cast<int>(nodes.size()));
         for (int id_starting_node = 0; id_starting_node < max_start_nodes; ++id_starting_node) {
             cout << "Starting from node: " << id_starting_node << endl;
+            vector<int> selectedNodes = selectNodes(nodes.size());
+            auto randPath = randomSolution(selectedNodes);
 
             // Local searches on Random path (steepest edge)
-            applyLocal(bestRandPath, "steepest", "edge",
+            applyLocal(randPath, "steepest", "edge",
                        localSteepestEdgeScores_Rand, localSteepestEdgeTimes_Rand_ms,
                        bestLocalSteepestEdge_Rand, bestLocalSteepestEdgeScore_Rand);
 
             // Candidates local search k=5,10,15
             for (int k : k_values) {
                 Timer tloc; tloc.tic();
-                auto newPath = steepest_local_search_candidates(bestRandPath, distanceMatrix, nodes, k);
+                auto newPath = steepest_local_search_candidates(randPath, distanceMatrix, nodes, k);
                 double dtloc = tloc.toc_ms();
 
                 if (!newPath.empty()) {
