@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <chrono>
+#include <map>
 #include "node.h"
 #include "distance_matrix.h"
 #include "heuristics.h"
@@ -28,7 +29,7 @@ struct Timer {
     double toc_ms() const {
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration<double, std::micro>(end - start);
-        return duration.count(); // mikrosekundy
+        return duration.count(); // microseconds
     }
 };
 
@@ -134,41 +135,16 @@ int main() {
 
         // --- Initialize scores and times ---
         vector<int> randScores;
-        vector<int> nnEndScores, nnFlexScores, greedyScores;
-        vector<int> greedy2Regret, greedy2RegretWSum;
-        vector<int> nnFlex2Regret, nnFlex2RegretWSum;
-
         vector<double> randTimes_ms;
-        vector<double> nnEndTimes_ms, nnFlexTimes_ms, greedyTimes_ms;
-        vector<double> greedy2RegretTimes_ms, greedy2RegretWSumTimes_ms;
-        vector<double> nnFlex2RegretTimes_ms, nnFlex2RegretWSumTimes_ms;
 
-        vector<int> localGreedyNodeScores_Greedy, localGreedyEdgeScores_Greedy;
-        vector<int> localSteepestNodeScores_Greedy, localSteepestEdgeScores_Greedy;
-        vector<int> localGreedyNodeScores_Rand, localGreedyEdgeScores_Rand;
-        vector<int> localSteepestNodeScores_Rand, localSteepestEdgeScores_Rand;
-        vector<int> localSteepestNodeScores_Candidates_Rand, localSteepestEdgeScores_Candidates_Rand;
+        vector<int> localSteepestEdgeScores_Rand;
+        vector<double> localSteepestEdgeTimes_Rand_ms;
 
-        vector<double> localGreedyNodeTimes_Greedy_ms, localGreedyEdgeTimes_Greedy_ms;
-        vector<double> localSteepestNodeTimes_Greedy_ms, localSteepestEdgeTimes_Greedy_ms;
-        vector<double> localGreedyNodeTimes_Rand_ms, localGreedyEdgeTimes_Rand_ms;
-        vector<double> localSteepestNodeTimes_Rand_ms, localSteepestEdgeTimes_Rand_ms;
-        vector<double> localSteepestNodeCandidatesTimes_Rand_ms, localSteepestEdgeCandidatesTimes_Rand_ms;
-
-        vector<int> bestRandPath, bestNNEnd, bestNNFlex, bestGreedy, bestG2, bestG05, bestNNF2, bestNNF05;
-        vector<int> bestLocalGreedyNode_Greedy, bestLocalGreedyEdge_Greedy, bestLocalSteepestNode_Greedy, bestLocalSteepestEdge_Greedy;
-        vector<int> bestLocalGreedyNode_Rand, bestLocalGreedyEdge_Rand, bestLocalSteepestNode_Rand, bestLocalSteepestEdge_Rand;
-        vector<int> bestLocalSteepestNodeCandidates_Rand, bestLocalSteepestEdgeCandidates_Rand;
+        vector<int> bestRandPath;
+        vector<int> bestLocalSteepestEdge_Rand;
 
         int bestRandScore = -1;
-        int bestScoreNNend = -1, bestScoreNNflex = -1, bestScoreGreedy = -1;
-        int bestScoreGreedy2Regret = -1, bestScoreGreedy2RegretWeighted = -1;
-        int bestScoreNNflex2Regret = -1, bestScoreNNflex2RegretWeighted = -1;
-        int bestLocalGreedyNodeScore_Greedy = -1, bestLocalGreedyEdgeScore_Greedy = -1;
-        int bestLocalSteepestNodeScore_Greedy = -1, bestLocalSteepestEdgeScore_Greedy = -1;
-        int bestLocalGreedyNodeScore_Rand = -1, bestLocalGreedyEdgeScore_Rand = -1;
-        int bestLocalSteepestNodeScore_Rand = -1, bestLocalSteepestEdgeScore_Rand = -1;
-        int bestLocalSteepestNodeScore_Candidates_Rand = -1, bestLocalSteepestEdgeScore_Candidates_Rand = -1;
+        int bestLocalSteepestEdgeScore_Rand = -1;
 
         auto updateBest = [](int& bestScore, vector<int>& bestPath, const vector<int>& path, int score) {
             if (path.empty()) return;
@@ -182,78 +158,76 @@ int main() {
         for (int i = 0; i < 200; ++i) {
             Timer timer;
             timer.tic();
-            vector<int> selectedNodes = selectNodes(nodes.size()); 
-            auto randPath = randomSolution(selectedNodes);        
+            vector<int> selectedNodes = selectNodes(nodes.size());
+            auto randPath = randomSolution(selectedNodes);
             double t_ms = timer.toc_ms();
-            int score = computeObjective(randPath, distanceMatrix, nodes); 
+            int score = computeObjective(randPath, distanceMatrix, nodes);
 
             randScores.push_back(score);
             randTimes_ms.push_back(t_ms);
             updateBest(bestRandScore, bestRandPath, randPath, score);
         }
+        printPath(bestRandPath);
 
-        // --- Heuristics and local searches ---
+        // --- Local search function ---
+        auto applyLocal = [&](const vector<int>& basePath,
+                              const string& method,
+                              const string& moveType,
+                              vector<int>& scoresVec,
+                              vector<double>& timesVec_ms,
+                              vector<int>& bestPathVec,
+                              int& bestScoreRef) {
+            if (basePath.empty()) return;
+            Timer tloc; tloc.tic();
+            vector<int> newPath;
+            if (method == "greedy") {
+                newPath = greedy_local_search(basePath, distanceMatrix, moveType, nodes);
+            } else {
+                newPath = steepest_local_search(basePath, distanceMatrix, moveType, nodes);
+            }
+            double dtloc = tloc.toc_ms();
+            if (!newPath.empty()) {
+                int cost = computeObjective(newPath, distanceMatrix, nodes);
+                scoresVec.push_back(cost);
+                timesVec_ms.push_back(dtloc);
+                updateBest(bestScoreRef, bestPathVec, newPath, cost);
+            }
+        };
+
+        // --- Candidates local search maps ---
+        vector<int> k_values = {5,10,15};
+        map<int, vector<int>> candidatesScores_Rand;
+        map<int, vector<double>> candidatesTimes_Rand_ms;
+        map<int, vector<int>> bestCandidatesPaths_Rand;
+        map<int, int> bestCandidatesScores_Rand;
+
         int max_start_nodes = min<int>(200, static_cast<int>(nodes.size()));
         for (int id_starting_node = 0; id_starting_node < max_start_nodes; ++id_starting_node) {
             cout << "Starting from node: " << id_starting_node << endl;
 
+            // Local searches on Random path (steepest edge)
+            applyLocal(bestRandPath, "steepest", "edge",
+                       localSteepestEdgeScores_Rand, localSteepestEdgeTimes_Rand_ms,
+                       bestLocalSteepestEdge_Rand, bestLocalSteepestEdgeScore_Rand);
 
-            // --- Assignment 3: Local search ---
-            auto applyLocal = [&](const vector<int>& basePath,
-                                  const string& method,
-                                  const string& moveType,
-                                  vector<int>& scoresVec,
-                                  vector<double>& timesVec_ms,
-                                  vector<int>& bestPathVec,
-                                  int& bestScoreRef) {
-                if (basePath.empty()) return;
+            // Candidates local search k=5,10,15
+            for (int k : k_values) {
                 Timer tloc; tloc.tic();
-                vector<int> newPath;
-                if (method == "greedy") {
-                    newPath = greedy_local_search(basePath, distanceMatrix, moveType, nodes);
-                } else {
-                    newPath = steepest_local_search(basePath, distanceMatrix, moveType, nodes);
-                }
+                auto newPath = steepest_local_search_candidates(bestRandPath, distanceMatrix, nodes, k);
                 double dtloc = tloc.toc_ms();
+
                 if (!newPath.empty()) {
                     int cost = computeObjective(newPath, distanceMatrix, nodes);
-                    scoresVec.push_back(cost);
-                    timesVec_ms.push_back(dtloc);
-                    updateBest(bestScoreRef, bestPathVec, newPath, cost);
-                }
-            };
+                    candidatesScores_Rand[k].push_back(cost);
+                    candidatesTimes_Rand_ms[k].push_back(dtloc);
 
-            // Local searches on Random path
-            applyLocal(bestRandPath, "steepest", "node", localSteepestNodeScores_Rand, localSteepestNodeTimes_Rand_ms, bestLocalSteepestNode_Rand, bestLocalSteepestNodeScore_Rand);
-            applyLocal(bestRandPath, "steepest", "edge", localSteepestEdgeScores_Rand, localSteepestEdgeTimes_Rand_ms, bestLocalSteepestEdge_Rand, bestLocalSteepestEdgeScore_Rand);
+                    if (bestCandidatesScores_Rand.find(k) == bestCandidatesScores_Rand.end() || cost < bestCandidatesScores_Rand[k]) {
+                        bestCandidatesScores_Rand[k] = cost;
+                        bestCandidatesPaths_Rand[k] = newPath;
+                    }
 
-            // --- Assignment 4: Local search Candidates Moves ---
-            vector<vector<int>> candidate_neighbors = build_candidate_neighbors(nodes, distanceMatrix, 10);
-
-            {
-                Timer tloc; tloc.tic();
-                auto newPath = steepest_local_search_candidates(bestRandPath, distanceMatrix, "node", nodes, candidate_neighbors);
-                double dtloc = tloc.toc_ms();
-                if (!newPath.empty()) {
-                    int cost = computeObjective(newPath, distanceMatrix, nodes);
-                    localSteepestNodeScores_Candidates_Rand.push_back(cost);
-                    localSteepestNodeCandidatesTimes_Rand_ms.push_back(dtloc);
-                    updateBest(bestLocalSteepestNodeScore_Candidates_Rand, bestLocalSteepestNodeCandidates_Rand, newPath, cost);
                 }
             }
-
-            {
-                Timer tloc; tloc.tic();
-                auto newPath = steepest_local_search_candidates(bestRandPath, distanceMatrix, "edge", nodes, candidate_neighbors);
-                double dtloc = tloc.toc_ms();
-                if (!newPath.empty()) {
-                    int cost = computeObjective(newPath, distanceMatrix, nodes);
-                    localSteepestEdgeScores_Candidates_Rand.push_back(cost);
-                    localSteepestEdgeCandidatesTimes_Rand_ms.push_back(dtloc);
-                    updateBest(bestLocalSteepestEdgeScore_Candidates_Rand, bestLocalSteepestEdgeCandidates_Rand, newPath, cost);
-                }
-            }
-
         }
 
         // --- Save best paths for visualization ---
@@ -263,12 +237,12 @@ int main() {
         delete_content_file(visFile);
 
         saveResults(visFile, nodes, bestRandPath, "Random Search");
-        saveResults(visFile, nodes, bestLocalSteepestNode_Rand, "Local Steepest Node (Random Path)");
         saveResults(visFile, nodes, bestLocalSteepestEdge_Rand, "Local Steepest Edge (Random Path)");
-        saveResults(visFile, nodes, bestLocalSteepestNodeCandidates_Rand, "Local Steepest Node (Candidates, Random Path)");
-        saveResults(visFile, nodes, bestLocalSteepestEdgeCandidates_Rand, "Local Steepest Edge (Candidates, Random Path)");
 
-        //To DO Fulfilll
+        for (int k : k_values) {
+            string label = "Local Steepest Edge (Candidates, k=" + to_string(k) + ", Random Path)";
+            saveResults(visFile, nodes, bestCandidatesPaths_Rand[k], label);
+        }
 
         // --- LaTeX tables ---
         string resultsDir = "../results";
@@ -303,23 +277,22 @@ int main() {
         // Objective Table
         texOut << "\\begin{table}[h!]\n\\centering\n\\begin{tabular}{lc}\n\\hline\nMethod & Avg (Min, Max) \\\\\n\\hline\n";
         writeRowCompact(texOut, "Random Path", randScores);
-        writeRowCompact(texOut, "Local Steepest Node (Random Path)", localSteepestNodeScores_Rand);
         writeRowCompact(texOut, "Local Steepest Edge (Random Path)", localSteepestEdgeScores_Rand);
-        writeRowCompact(texOut, "Local Steepest Node (Candidates, Random Path)", localSteepestNodeScores_Candidates_Rand);
-        writeRowCompact(texOut, "Local Steepest Edge (Candidates, Random Path)", localSteepestEdgeScores_Candidates_Rand);
-
-        //To DO Fulfilll
+        for (int k : k_values) {
+            string label = "Local Steepest Edge (Candidates, k=" + to_string(k) + ", Random Path)";
+            writeRowCompact(texOut, label, candidatesScores_Rand[k]);
+        }
         texOut << "\\hline\n\\end{tabular}\n\\caption{Average, min, and max objective values for " << tsp_type << "}\n\\label{tab:" << tsp_type << "_scores}\n\\end{table}\n";
         texOut.close();
 
         // Timing Table
         texTimeOut << "\\begin{table}[h!]\n\\centering\n\\begin{tabular}{lc}\n\\hline\nMethod & Time (avg, min, max) [s] \\\\\n\\hline\n";
         writeRowTime(texTimeOut, "Random Path", randTimes_ms);
-        writeRowTime(texTimeOut, "Local Steepest Node (Random Path)", localSteepestNodeTimes_Rand_ms);
         writeRowTime(texTimeOut, "Local Steepest Edge (Random Path)", localSteepestEdgeTimes_Rand_ms);
-        writeRowTime(texTimeOut, "Local Steepest Node (Candidates, Random Path)", localSteepestNodeCandidatesTimes_Rand_ms);
-        writeRowTime(texTimeOut, "Local Steepest Edge (Candidates, Random Path)", localSteepestEdgeCandidatesTimes_Rand_ms);
-
+        for (int k : k_values) {
+            string label = "Local Steepest Edge (Candidates, k=" + to_string(k) + ", Random Path)";
+            writeRowTime(texTimeOut, label, candidatesTimes_Rand_ms[k]);
+        }
         texTimeOut << "\\hline\n\\end{tabular}\n\\caption{Average, minimum, and maximum execution times for " << tsp_type << "}\n\\label{tab:" << tsp_type << "_timings}\n\\end{table}\n";
         texTimeOut.close();
 
