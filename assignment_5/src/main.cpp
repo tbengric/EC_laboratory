@@ -9,6 +9,7 @@
 #include <filesystem>
 #include <chrono>
 #include <map>
+#include <list>
 #include "node.h"
 #include "distance_matrix.h"
 #include "heuristics.h"
@@ -140,11 +141,16 @@ int main() {
         vector<int> localSteepestEdgeScores_Rand;
         vector<double> localSteepestEdgeTimes_Rand_ms;
 
+        vector<int> localSteepestEdgeLMScores_Rand;
+        vector<double> localSteepestEdgeLMTimes_Rand_ms;
+
         vector<int> bestRandPath;
         vector<int> bestLocalSteepestEdge_Rand;
+        vector<int> bestLocalSteepestEdgeLM_Rand;
 
         int bestRandScore = -1;
         int bestLocalSteepestEdgeScore_Rand = -1;
+        int bestLocalSteepestEdgeLMScore_Rand = -1;
 
         auto updateBest = [](int& bestScore, vector<int>& bestPath, const vector<int>& path, int score) {
             if (path.empty()) return;
@@ -201,6 +207,9 @@ int main() {
         map<int, vector<int>> bestCandidatesPaths_Rand;
         map<int, int> bestCandidatesScores_Rand;
 
+        // --- List of moves for steepest_local_search_with_lm (persists across all iterations)
+        list<SavedMove> list_of_moves_persistent;
+
         int max_start_nodes = min<int>(200, static_cast<int>(nodes.size()));
         for (int id_starting_node = 0; id_starting_node < max_start_nodes; ++id_starting_node) {
             cout << "Starting from node: " << id_starting_node << endl;
@@ -211,6 +220,19 @@ int main() {
             applyLocal(randPath, "steepest", "edge",
                        localSteepestEdgeScores_Rand, localSteepestEdgeTimes_Rand_ms,
                        bestLocalSteepestEdge_Rand, bestLocalSteepestEdgeScore_Rand);
+
+            // Local searches on Random path (steepest edge with list of moves)
+            if (!randPath.empty()) {
+                Timer tloc_lm; tloc_lm.tic();
+                auto newPath_lm = steepest_local_search_with_lm(randPath, distanceMatrix, "edge", nodes, list_of_moves_persistent);
+                double dtloc_lm = tloc_lm.toc_ms();
+                if (!newPath_lm.empty()) {
+                    int cost_lm = computeObjective(newPath_lm, distanceMatrix, nodes);
+                    localSteepestEdgeLMScores_Rand.push_back(cost_lm);
+                    localSteepestEdgeLMTimes_Rand_ms.push_back(dtloc_lm);
+                    updateBest(bestLocalSteepestEdgeLMScore_Rand, bestLocalSteepestEdgeLM_Rand, newPath_lm, cost_lm);
+                }
+            }
 
             // Candidates local search k=5,10,15
             for (int k : k_values) {
@@ -240,6 +262,7 @@ int main() {
 
         saveResults(visFile, nodes, bestRandPath, "Random Search");
         saveResults(visFile, nodes, bestLocalSteepestEdge_Rand, "Local Steepest Edge (Random Path)");
+        saveResults(visFile, nodes, bestLocalSteepestEdgeLM_Rand, "Local Steepest Edge with LM (Random Path)");
 
         for (int k : k_values) {
             string label = "Local Steepest Edge (Candidates, k=" + to_string(k) + ", Random Path)";
@@ -280,6 +303,7 @@ int main() {
         texOut << "\\begin{table}[h!]\n\\centering\n\\begin{tabular}{lc}\n\\hline\nMethod & Avg (Min, Max) \\\\\n\\hline\n";
         writeRowCompact(texOut, "Random Path", randScores);
         writeRowCompact(texOut, "Local Steepest Edge (Random Path)", localSteepestEdgeScores_Rand);
+        writeRowCompact(texOut, "Local Steepest Edge with LM (Random Path)", localSteepestEdgeLMScores_Rand);
         for (int k : k_values) {
             string label = "Local Steepest Edge (Candidates, k=" + to_string(k) + ", Random Path)";
             writeRowCompact(texOut, label, candidatesScores_Rand[k]);
@@ -291,6 +315,7 @@ int main() {
         texTimeOut << "\\begin{table}[h!]\n\\centering\n\\begin{tabular}{lc}\n\\hline\nMethod & Time (avg, min, max) [s] \\\\\n\\hline\n";
         writeRowTime(texTimeOut, "Random Path", randTimes_ms);
         writeRowTime(texTimeOut, "Local Steepest Edge (Random Path)", localSteepestEdgeTimes_Rand_ms);
+        writeRowTime(texTimeOut, "Local Steepest Edge with LM (Random Path)", localSteepestEdgeLMTimes_Rand_ms);
         for (int k : k_values) {
             string label = "Local Steepest Edge (Candidates, k=" + to_string(k) + ", Random Path)";
             writeRowTime(texTimeOut, label, candidatesTimes_Rand_ms[k]);

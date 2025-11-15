@@ -7,6 +7,7 @@
 #include "distance_matrix.h"
 #include <set>
 #include <tuple>
+#include <list>
 
 using namespace std;
 
@@ -162,6 +163,198 @@ vector<int> steepest_local_search(const vector<int>& initial_path, const vector<
         
 
     }
+    return current_path;
+}
+
+// Structure to represent a saved move for delta evaluation
+struct SavedMove {
+    int move_type; // 0: intra-node, 1: intra-edge, 2: inter-node
+    int first_param;
+    int second_param;
+    int third_param; // for inter-node moves
+    int removed_node1; // for edge moves (intra-edge): one endpoint of removed edge
+    int removed_node2; // for edge moves (intra-edge): other endpoint of removed edge
+    double delta;
+    bool is_inverted; // whether this move involves inverted edges
+};
+
+// Helper function to check if an edge exists in the path and get its direction
+// Returns: 0 if edge doesn't exist, 1 if edge exists in normal direction, -1 if edge exists in reverse direction
+int edge_exists_and_direction(const vector<int>& path, int node_a, int node_b) {
+    int path_size = path.size();
+    for (int i = 0; i < path_size; ++i) {
+        int current = path[i];
+        int next = path[(i + 1) % path_size];
+        
+        if (current == node_a && next == node_b) {
+            return 1; // normal direction
+        }
+        if (current == node_b && next == node_a) {
+            return -1; // reverse direction
+        }
+    }
+    return 0; // edge doesn't exist
+}
+
+// Steepest local search with list of moves (previous iterations)
+// The list of moves is managed EXTERNALLY and persists across multiple calls
+vector<int> steepest_local_search_with_lm(const vector<int>& initial_path, const vector<vector<int>>& dist_matrix, 
+                                          const string& intra_method, const vector<Node>& nodes,
+                                          list<SavedMove>& list_of_moves) {
+    int dist_size = dist_matrix.size();
+    vector<int> current_path = initial_path;
+    
+    while(true) {
+        double best_delta = 0.0;
+        int best_move_type = -1;
+        int best_first_node = 0, best_second_node = 0;
+        int best_not_selected_node = -1;
+        bool best_move_from_lm = false;
+        auto best_move_iter = list_of_moves.end();
+        
+        int current_path_size = current_path.size();
+        if (current_path_size < 2) break;
+        
+        set<int> selected_nodes(current_path.begin(), current_path.end());
+        vector<int> not_selected_nodes;
+        for (const auto& node : nodes) {
+            if (selected_nodes.find(node.id) == selected_nodes.end()) {
+                not_selected_nodes.push_back(node.id);
+            }
+        }
+        
+        // Phase 1: Check list of moves (LM) from previous iterations
+        auto it = list_of_moves.begin();
+        while (it != list_of_moves.end()) {
+            SavedMove& saved_move = *it;
+            
+            if (saved_move.move_type == 1) {
+                int edge1_status = edge_exists_and_direction(current_path, saved_move.removed_node1, saved_move.removed_node2);
+                
+                if (edge1_status == 0) {
+                    it = list_of_moves.erase(it);
+                    continue;
+                } else if (edge1_status == 1) {
+                    if (saved_move.delta < best_delta) {
+                        best_delta = saved_move.delta;
+                        best_move_type = saved_move.move_type;
+                        best_first_node = saved_move.first_param;
+                        best_second_node = saved_move.second_param;
+                        best_move_from_lm = true;
+                        best_move_iter = it;
+                    }
+                    ++it;
+                    break;
+                } else if (edge1_status == -1) {
+                    ++it;
+                    continue;
+                }
+            } else if (saved_move.move_type == 0 || saved_move.move_type == 2) {
+                double delta = 0.0;
+                if (saved_move.move_type == 0) {
+                    delta = delta_intra_node(current_path, saved_move.first_param, saved_move.second_param, dist_matrix);
+                } else {
+                    delta = delta_inter_node(current_path, saved_move.first_param, saved_move.third_param, dist_matrix, nodes);
+                }
+                
+                if (delta < best_delta) {
+                    best_delta = delta;
+                    best_move_type = saved_move.move_type;
+                    best_first_node = saved_move.first_param;
+                    best_second_node = saved_move.second_param;
+                    best_not_selected_node = saved_move.third_param;
+                    best_move_from_lm = true;
+                    best_move_iter = it;
+                }
+                ++it;
+                break;
+            }
+            ++it;
+        }
+        
+        // Phase 2: If no move from LM was found, evaluate all new moves
+        if (best_move_type == -1) {
+            if (intra_method == "node") {
+                for (int i = 1; i < current_path_size - 1; ++i) {
+                    for (int j = i + 1; j < current_path_size - 1; ++j) {
+                        double delta = delta_intra_node(current_path, i, j, dist_matrix);
+                        if (delta < best_delta) {
+                            best_delta = delta;
+                            best_move_type = 0;
+                            best_first_node = i;
+                            best_second_node = j;
+                            best_move_from_lm = false;
+                        }
+                    }
+                }
+            } else if (intra_method == "edge") {
+                for (int i = 0; i < current_path_size - 1; ++i) {
+                    for (int j = i + 2; j < current_path_size - 1; ++j) {
+                        double delta = delta_intra_edge(current_path, i, j, dist_matrix);
+                        if (delta < best_delta) {
+                            best_delta = delta;
+                            best_move_type = 1;
+                            best_first_node = i;
+                            best_second_node = j;
+                            best_move_from_lm = false;
+                        }
+                    }
+                }
+            }
+            
+            for (int i = 1; i < current_path_size - 1; ++i) {
+                for (int not_selected_node : not_selected_nodes) {
+                    double delta = delta_inter_node(current_path, i, not_selected_node, dist_matrix, nodes);
+                    if (delta < best_delta) {
+                        best_delta = delta;
+                        best_move_type = 2;
+                        best_first_node = i;
+                        best_not_selected_node = not_selected_node;
+                        best_move_from_lm = false;
+                    }
+                }
+            }
+        }
+        
+        // Phase 3: Apply best move or terminate
+        if (best_move_type != -1 && best_delta < 0.0) {
+            int removed_node1_before = -1, removed_node2_before = -1;
+            if (best_move_type == 1) {
+                removed_node1_before = current_path[best_first_node];
+                removed_node2_before = current_path[(best_first_node + 1) % current_path_size];
+            }
+            
+            if (best_move_type == 0) {
+                swap(current_path[best_first_node], current_path[best_second_node]);
+            } else if (best_move_type == 1) {
+                reverse(current_path.begin() + best_first_node + 1, current_path.begin() + best_second_node + 1);
+            } else if (best_move_type == 2) {
+                current_path[best_first_node] = best_not_selected_node;
+            }
+            
+            if (best_move_from_lm) {
+                list_of_moves.erase(best_move_iter);
+            }
+            
+            SavedMove new_move;
+            new_move.move_type = best_move_type;
+            new_move.first_param = best_first_node;
+            new_move.second_param = best_second_node;
+            new_move.third_param = best_not_selected_node;
+            new_move.delta = best_delta;
+            new_move.is_inverted = false;
+            
+            if (best_move_type == 1) {
+                new_move.removed_node1 = removed_node1_before;
+                new_move.removed_node2 = removed_node2_before;
+            }
+            
+            list_of_moves.push_back(new_move);
+        } else {
+            break;
+        }
+    }
+    
     return current_path;
 }
 
