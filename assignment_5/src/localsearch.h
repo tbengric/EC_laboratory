@@ -170,9 +170,9 @@ vector<int> steepest_local_search(const vector<int>& initial_path, const vector<
 // Structure to represent a saved move for delta evaluation
 struct SavedMove {
     int move_type; // 0: intra-node, 1: intra-edge, 2: inter-node
-    int first_param;
-    int second_param;
-    int third_param; // for inter-node moves
+    int first_param; // begin position
+    int second_param; // end position
+    int third_param; // for inter-node moves : id of outside node
     int removed_node1; // for edge moves (intra-edge): one endpoint of first removed edge
     int removed_node2; // for edge moves (intra-edge): other endpoint of first removed edge
     int removed_node3; // second removed edge endpoint 1
