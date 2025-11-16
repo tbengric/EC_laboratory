@@ -9,9 +9,6 @@
 #include <tuple>
 #include <list>
 #include <algorithm>
-#include <unordered_set>
-// Limit of stored moves in LM to avoid noisy crowding
-static const size_t MAX_LM_SIZE = 2000;
 
 using namespace std;
 
@@ -218,23 +215,8 @@ vector<int> steepest_local_search_with_lm(const vector<int>& initial_path, const
                                           list<SavedMove>& list_of_moves) {
     int dist_size = dist_matrix.size();
     vector<int> current_path = initial_path;
-    
-    unordered_set<string> visited;
-    auto path_key = [&](const vector<int>& p){
-        string s;
-        s.reserve(p.size()*3);
-        for (int v : p) { s += to_string(v); s.push_back(','); }
-        return s;
-    };
 
     while(true) {
-        // detect cycles — if current path already seen, break out to avoid infinite loop
-        string key = path_key(current_path);
-        if (visited.count(key)) {
-            // break to avoid cycles; LM may produce previously seen path
-            break;
-        }
-        visited.insert(key);
         int current_path_size = current_path.size();
         if (current_path_size < 2) break;
         
@@ -250,12 +232,12 @@ vector<int> steepest_local_search_with_lm(const vector<int>& initial_path, const
         bool lm_move_applied = false;
         auto it = list_of_moves.begin();
         while (it != list_of_moves.end() && !lm_move_applied) {
-            SavedMove& m = *it;
+            SavedMove& move = *it;
             
-            if (m.move_type == 1) {
+            if (move.move_type == 1) {
                 // For intra-edge: check both removed edges
-                int dir1 = edge_exists_and_direction(current_path, m.removed_node1, m.removed_node2);
-                int dir2 = edge_exists_and_direction(current_path, m.removed_node3, m.removed_node4);
+                int dir1 = edge_exists_and_direction(current_path, move.removed_node1, move.removed_node2);
+                int dir2 = edge_exists_and_direction(current_path, move.removed_node3, move.removed_node4);
 
                 if (dir1 == 0 || dir2 == 0) {
                     // At least one removed edge no longer exists -> remove move
@@ -263,13 +245,13 @@ vector<int> steepest_local_search_with_lm(const vector<int>& initial_path, const
                     continue;
                 }
 
-                bool same_as_saved = (dir1 == m.edge_dir1 && dir2 == m.edge_dir2);
-                bool both_reversed = (dir1 == -m.edge_dir1 && dir2 == -m.edge_dir2);
+                bool same_as_saved = (dir1 == move.edge_dir1 && dir2 == move.edge_dir2);
+                bool both_reversed = (dir1 == -move.edge_dir1 && dir2 == -move.edge_dir2);
 
                 if (same_as_saved || both_reversed) {
                     // Find positions and apply 2-opt
-                    int pos1 = find_node_index(current_path, m.removed_node1);
-                    int pos3 = find_node_index(current_path, m.removed_node3);
+                    int pos1 = find_node_index(current_path, move.removed_node1);
+                    int pos3 = find_node_index(current_path, move.removed_node3);
                     if (pos1 != -1 && pos3 != -1) {
                         int a = min(pos1, pos3);
                         int b = max(pos1, pos3);
@@ -296,9 +278,9 @@ vector<int> steepest_local_search_with_lm(const vector<int>& initial_path, const
                 }
             } else {
                 // For node/inter moves, validate and apply if still improving
-                if (m.move_type == 0) {
-                    int posA = find_node_index(current_path, m.saved_node_a);
-                    int posB = find_node_index(current_path, m.saved_node_b);
+                if (move.move_type == 0) {
+                    int posA = find_node_index(current_path, move.saved_node_a);
+                    int posB = find_node_index(current_path, move.saved_node_b);
                     if (posA == -1 || posB == -1) {
                         it = list_of_moves.erase(it);
                         continue;
@@ -313,14 +295,14 @@ vector<int> steepest_local_search_with_lm(const vector<int>& initial_path, const
                         ++it; // not improving now, keep it in LM
                         continue;
                     }
-                } else if (m.move_type == 2) {
-                    int pos = find_node_index(current_path, m.saved_node_a);
+                } else if (move.move_type == 2) {
+                    int pos = find_node_index(current_path, move.saved_node_a);
                     if (pos == -1) { it = list_of_moves.erase(it); continue; }
                     // Check candidate still not selected
-                    if (selected_nodes.find(m.third_param) != selected_nodes.end()) { it = list_of_moves.erase(it); continue; }
-                    double d = delta_inter_node(current_path, pos, m.third_param, dist_matrix, nodes);
+                    if (selected_nodes.find(move.third_param) != selected_nodes.end()) { it = list_of_moves.erase(it); continue; }
+                    double d = delta_inter_node(current_path, pos, move.third_param, dist_matrix, nodes);
                     if (d < 0.0) {
-                        current_path[pos] = m.third_param;
+                        current_path[pos] = move.third_param;
                         it = list_of_moves.erase(it);
                         lm_move_applied = true;
                         continue;
@@ -412,23 +394,6 @@ vector<int> steepest_local_search_with_lm(const vector<int>& initial_path, const
         
         for (const auto& m : new_improving_moves) {
             list_of_moves.push_back(m);
-        }
-
-        // Trim LM size if it grows too big (drop worst moves)
-        if (list_of_moves.size() > MAX_LM_SIZE) {
-            vector<SavedMove> tmp(list_of_moves.begin(), list_of_moves.end());
-            sort(tmp.begin(), tmp.end(), [](const SavedMove& a, const SavedMove& b) { return a.delta < b.delta; });
-            // keep only best MAX_LM_SIZE
-            list_of_moves.clear();
-            for (size_t ii = 0; ii < min(tmp.size(), (size_t)MAX_LM_SIZE); ++ii) list_of_moves.push_back(tmp[ii]);
-        }
-
-        // Sort the entire LM by delta (best first)
-        if (!list_of_moves.empty()) {
-            vector<SavedMove> tmp(list_of_moves.begin(), list_of_moves.end());
-            sort(tmp.begin(), tmp.end(), [](const SavedMove &a, const SavedMove &b) { return a.delta < b.delta; });
-            list_of_moves.clear();
-            for (const auto &mv : tmp) list_of_moves.push_back(mv);
         }
         
         // Apply best move or terminate
