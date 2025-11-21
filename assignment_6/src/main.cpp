@@ -148,15 +148,22 @@ int main() {
         vector<int> mslsScores;
         vector<double> mslsTimes_ms;
 
+        // ILS vectors
+        vector<int> ilsScores;
+        vector<double> ilsTimes_ms;
+        vector<int> ilsLocalSearchCounts;
+
         vector<int> bestRandPath;
         vector<int> bestLocalSteepestEdge_Rand;
         vector<int> bestLocalSteepestEdgeLM_Rand;
         vector<int> bestMSLSPath;
+        vector<int> bestILSPath;
 
         int bestRandScore = -1;
         int bestLocalSteepestEdgeScore_Rand = -1;
         int bestLocalSteepestEdgeLMScore_Rand = -1;
         int bestMSLSScore = -1;
+        int bestILSScore = -1;
 
         auto updateBest = [](int& bestScore, vector<int>& bestPath, const vector<int>& path, int score) {
             if (path.empty()) return;
@@ -257,6 +264,110 @@ int main() {
             }
         }
 
+        // Calculate average MSLS time for ILS stopping condition
+        double avg_msls_time_ms = 0.0;
+        if (!mslsTimes_ms.empty()) {
+            avg_msls_time_ms = average_doubles(mslsTimes_ms);
+        }
+        cout << "Average MSLS time: " << avg_msls_time_ms / 1000.0 << " ms" << endl;
+
+        // --- ILS: Run 20 times with time-based stopping condition ---
+        // Perturbation strategy: Double-bridge move (4-opt)
+        // This removes 4 edges and reconnects the path in a different way
+        // More disruptive than simple 2-opt, helping escape local optima
+        auto perturbation = [&](const vector<int>& path) -> vector<int> {
+            vector<int> perturbed = path;
+            int n = perturbed.size();
+            if (n < 8) return perturbed; // Need at least 8 nodes for double-bridge
+            
+            // Select 4 random cut points that divide the tour into 4 segments
+            // Make sure they are in increasing order and sufficiently spaced
+            vector<int> cuts;
+            cuts.push_back(rand() % (n / 4));
+            cuts.push_back(n / 4 + rand() % (n / 4));
+            cuts.push_back(n / 2 + rand() % (n / 4));
+            cuts.push_back(3 * n / 4 + rand() % (n / 4));
+            
+            // Double-bridge: reconnect segments in order A-C-B-D instead of A-B-C-D
+            vector<int> result;
+            // Segment A: [0, cuts[0])
+            for (int i = 0; i < cuts[0]; ++i) {
+                result.push_back(perturbed[i]);
+            }
+            // Segment C: [cuts[2], cuts[3])
+            for (int i = cuts[2]; i < cuts[3]; ++i) {
+                result.push_back(perturbed[i]);
+            }
+            // Segment B: [cuts[0], cuts[2])
+            for (int i = cuts[0]; i < cuts[2]; ++i) {
+                result.push_back(perturbed[i]);
+            }
+            // Segment D: [cuts[3], n)
+            for (int i = cuts[3]; i < n; ++i) {
+                result.push_back(perturbed[i]);
+            }
+            
+            return result;
+        };
+
+        for (int ils_run = 0; ils_run < 20; ++ils_run) {
+            cout << "ILS Run: " << ils_run + 1 << "/20" << endl;
+            Timer ils_timer;
+            ils_timer.tic();
+            
+            // Generate initial random solution
+            vector<int> selectedNodes = selectNodes(nodes.size());
+            vector<int> x = randomSolution(selectedNodes);
+            
+            // Apply initial local search
+            if (!x.empty()) {
+                x = steepest_local_search(x, distanceMatrix, "edge", nodes);
+            }
+            
+            int best_ils_score = -1;
+            vector<int> best_ils_path = x;
+            if (!x.empty()) {
+                best_ils_score = computeObjective(x, distanceMatrix, nodes);
+            }
+            
+            int local_search_count = 1; // Count initial local search
+            
+            // ILS main loop: continue until time limit (avg MSLS time)
+            while (ils_timer.toc_ms() < avg_msls_time_ms) {
+                // Perturbation
+                vector<int> y = perturbation(x);
+                
+                // Local search on perturbed solution
+                if (!y.empty()) {
+                    y = steepest_local_search(y, distanceMatrix, "edge", nodes);
+                    local_search_count++;
+                    
+                    if (!y.empty()) {
+                        int y_score = computeObjective(y, distanceMatrix, nodes);
+                        
+                        // Acceptance criterion: accept if better
+                        if (best_ils_score == -1 || y_score < best_ils_score) {
+                            x = y;
+                            best_ils_score = y_score;
+                            best_ils_path = y;
+                        }
+                    }
+                }
+            }
+            
+            double ils_time = ils_timer.toc_ms();
+            
+            // Store results for this ILS run
+            if (best_ils_score != -1) {
+                ilsScores.push_back(best_ils_score);
+                ilsTimes_ms.push_back(ils_time);
+                ilsLocalSearchCounts.push_back(local_search_count);
+                updateBest(bestILSScore, bestILSPath, best_ils_path, best_ils_score);
+            }
+            
+            cout << "  Local searches performed: " << local_search_count << endl;
+        }
+
         int max_start_nodes = min<int>(200, static_cast<int>(nodes.size()));
         for (int id_starting_node = 0; id_starting_node < max_start_nodes; ++id_starting_node) {
             cout << "Starting from node: " << id_starting_node << endl;
@@ -311,6 +422,7 @@ int main() {
         saveResults(visFile, nodes, bestLocalSteepestEdge_Rand, "Local Steepest Edge (Random Path)");
         saveResults(visFile, nodes, bestLocalSteepestEdgeLM_Rand, "Local Steepest Edge with LM (Random Path)");
         saveResults(visFile, nodes, bestMSLSPath, "MSLS (20 runs x 200 iterations)");
+        saveResults(visFile, nodes, bestILSPath, "ILS (20 runs, time-limited)");
 
         for (int k : k_values) {
             string label = "Local Steepest Edge (Candidates, k=" + to_string(k) + ", Random Path)";
@@ -353,6 +465,7 @@ int main() {
         writeRowCompact(texOut, "Local Steepest Edge (Random Path)", localSteepestEdgeScores_Rand);
         writeRowCompact(texOut, "Local Steepest Edge with LM (Random Path)", localSteepestEdgeLMScores_Rand);
         writeRowCompact(texOut, "MSLS (20 runs x 200 iterations)", mslsScores);
+        writeRowCompact(texOut, "ILS (20 runs, time-limited)", ilsScores);
         for (int k : k_values) {
             string label = "Local Steepest Edge (Candidates, k=" + to_string(k) + ", Random Path)";
             writeRowCompact(texOut, label, candidatesScores_Rand[k]);
@@ -366,12 +479,33 @@ int main() {
         writeRowTime(texTimeOut, "Local Steepest Edge (Random Path)", localSteepestEdgeTimes_Rand_ms);
         writeRowTime(texTimeOut, "Local Steepest Edge with LM (Random Path)", localSteepestEdgeLMTimes_Rand_ms);
         writeRowTime(texTimeOut, "MSLS (20 runs x 200 iterations)", mslsTimes_ms);
+        writeRowTime(texTimeOut, "ILS (20 runs, time-limited)", ilsTimes_ms);
         for (int k : k_values) {
             string label = "Local Steepest Edge (Candidates, k=" + to_string(k) + ", Random Path)";
             writeRowTime(texTimeOut, label, candidatesTimes_Rand_ms[k]);
         }
         texTimeOut << "\\hline\n\\end{tabular}\n\\caption{Average, minimum, and maximum execution times for " << tsp_type << "}\n\\label{tab:" << tsp_type << "_timings}\n\\end{table}\n";
         texTimeOut.close();
+
+        // ILS Local Search Count Table
+        if (!ilsLocalSearchCounts.empty()) {
+            string texILSCountFile = resultsDir + "/" + tsp_type + "_ils_counts_table.tex";
+            ofstream texILSCountOut(texILSCountFile);
+            int minCount = *min_element(ilsLocalSearchCounts.begin(), ilsLocalSearchCounts.end());
+            int maxCount = *max_element(ilsLocalSearchCounts.begin(), ilsLocalSearchCounts.end());
+            double avgCount = average_ints(ilsLocalSearchCounts);
+            
+            texILSCountOut << "\\begin{table}[h!]\n\\centering\n\\begin{tabular}{lc}\n\\hline\n";
+            texILSCountOut << "Metric & Value \\\\\n\\hline\n";
+            texILSCountOut << fixed << setprecision(2);
+            texILSCountOut << "Average Local Searches per ILS Run & " << avgCount << " \\\\\n";
+            texILSCountOut << "Min Local Searches & " << minCount << " \\\\\n";
+            texILSCountOut << "Max Local Searches & " << maxCount << " \\\\\n";
+            texILSCountOut << "\\hline\n\\end{tabular}\n\\caption{ILS local search counts for " << tsp_type << "}\n";
+            texILSCountOut << "\\label{tab:" << tsp_type << "_ils_counts}\n\\end{table}\n";
+            texILSCountOut.close();
+            cout << "-> " << texILSCountFile << endl;
+        }
 
         cout << "Results and timing tables generated for " << tsp_type << endl;
         cout << "-> " << texFile << endl;
