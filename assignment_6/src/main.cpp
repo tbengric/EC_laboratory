@@ -272,38 +272,38 @@ int main() {
         cout << "Average MSLS time: " << avg_msls_time_ms / 1000.0 << " ms" << endl;
 
         // --- ILS: Run 20 times with time-based stopping condition ---
-        // Perturbation strategy: Double-bridge move (4-opt)
-        // This removes 4 edges and reconnects the path in a different way
-        // More disruptive than simple 2-opt, helping escape local optima
+        // Perturbation : Selects 4 random cut points and reconnects segments in a different order
         auto perturbation = [&](const vector<int>& path) -> vector<int> {
             vector<int> perturbed = path;
             int n = perturbed.size();
-            if (n < 8) return perturbed; // Need at least 8 nodes for double-bridge
+            if (n < 8) return perturbed; // Need at least 8 nodes
             
-            // Select 4 random cut points that divide the tour into 4 segments
-            // Make sure they are in increasing order and sufficiently spaced
-            vector<int> cuts;
-            cuts.push_back(rand() % (n / 4));
-            cuts.push_back(n / 4 + rand() % (n / 4));
-            cuts.push_back(n / 2 + rand() % (n / 4));
-            cuts.push_back(3 * n / 4 + rand() % (n / 4));
+            // Select 4 random cut points, ensuring they are distinct and ordered
+            set<int> cut_set;
+            while (cut_set.size() < 4) {
+                cut_set.insert(1 + rand() % (n - 2)); // Avoid first and last positions
+            }
+            vector<int> cuts(cut_set.begin(), cut_set.end());
+            sort(cuts.begin(), cuts.end());
             
-            // Double-bridge: reconnect segments in order A-C-B-D instead of A-B-C-D
+            // Four segments: A=[0,cuts[0]), B=[cuts[0],cuts[1]), C=[cuts[1],cuts[2]), D=[cuts[2],n)
+            // Double-bridge: reconnect as A-C-B-D instead of A-B-C-D
             vector<int> result;
+            
             // Segment A: [0, cuts[0])
             for (int i = 0; i < cuts[0]; ++i) {
                 result.push_back(perturbed[i]);
             }
-            // Segment C: [cuts[2], cuts[3])
-            for (int i = cuts[2]; i < cuts[3]; ++i) {
+            // Segment C: [cuts[1], cuts[2])
+            for (int i = cuts[1]; i < cuts[2]; ++i) {
                 result.push_back(perturbed[i]);
             }
-            // Segment B: [cuts[0], cuts[2])
-            for (int i = cuts[0]; i < cuts[2]; ++i) {
+            // Segment B: [cuts[0], cuts[1])
+            for (int i = cuts[0]; i < cuts[1]; ++i) {
                 result.push_back(perturbed[i]);
             }
-            // Segment D: [cuts[3], n)
-            for (int i = cuts[3]; i < n; ++i) {
+            // Segment D: [cuts[2], n)
+            for (int i = cuts[2]; i < n; ++i) {
                 result.push_back(perturbed[i]);
             }
             
