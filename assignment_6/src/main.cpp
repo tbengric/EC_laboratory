@@ -144,13 +144,19 @@ int main() {
         vector<int> localSteepestEdgeLMScores_Rand;
         vector<double> localSteepestEdgeLMTimes_Rand_ms;
 
+        // MSLS vectors
+        vector<int> mslsScores;
+        vector<double> mslsTimes_ms;
+
         vector<int> bestRandPath;
         vector<int> bestLocalSteepestEdge_Rand;
         vector<int> bestLocalSteepestEdgeLM_Rand;
+        vector<int> bestMSLSPath;
 
         int bestRandScore = -1;
         int bestLocalSteepestEdgeScore_Rand = -1;
         int bestLocalSteepestEdgeLMScore_Rand = -1;
+        int bestMSLSScore = -1;
 
         auto updateBest = [](int& bestScore, vector<int>& bestPath, const vector<int>& path, int score) {
             if (path.empty()) return;
@@ -210,6 +216,47 @@ int main() {
         // --- List of moves for steepest_local_search_with_lm (persists across all iterations)
         list<SavedMove> list_of_moves_persistent;
 
+        // --- MSLS: Run 20 times, each with 200 iterations ---
+        for (int msls_run = 0; msls_run < 20; ++msls_run) {
+            cout << "MSLS Run: " << msls_run + 1 << "/20" << endl;
+            Timer msls_timer;
+            msls_timer.tic();
+            
+            vector<int> best_msls_path;
+            int best_msls_score = -1;
+            
+            // Perform 200 iterations of basic local search
+            for (int iter = 0; iter < 200; ++iter) {
+                // Generate random starting solution
+                vector<int> selectedNodes = selectNodes(nodes.size());
+                auto randPath = randomSolution(selectedNodes);
+                
+                // Apply steepest local search with edge exchange
+                if (!randPath.empty()) {
+                    auto localPath = steepest_local_search(randPath, distanceMatrix, "edge", nodes);
+                    
+                    if (!localPath.empty()) {
+                        int localScore = computeObjective(localPath, distanceMatrix, nodes);
+                        
+                        // Update best solution for this MSLS run
+                        if (best_msls_score == -1 || localScore < best_msls_score) {
+                            best_msls_score = localScore;
+                            best_msls_path = localPath;
+                        }
+                    }
+                }
+            }
+            
+            double msls_time = msls_timer.toc_ms();
+            
+            // Store results for this MSLS run
+            if (best_msls_score != -1) {
+                mslsScores.push_back(best_msls_score);
+                mslsTimes_ms.push_back(msls_time);
+                updateBest(bestMSLSScore, bestMSLSPath, best_msls_path, best_msls_score);
+            }
+        }
+
         int max_start_nodes = min<int>(200, static_cast<int>(nodes.size()));
         for (int id_starting_node = 0; id_starting_node < max_start_nodes; ++id_starting_node) {
             cout << "Starting from node: " << id_starting_node << endl;
@@ -263,6 +310,7 @@ int main() {
         saveResults(visFile, nodes, bestRandPath, "Random Search");
         saveResults(visFile, nodes, bestLocalSteepestEdge_Rand, "Local Steepest Edge (Random Path)");
         saveResults(visFile, nodes, bestLocalSteepestEdgeLM_Rand, "Local Steepest Edge with LM (Random Path)");
+        saveResults(visFile, nodes, bestMSLSPath, "MSLS (20 runs x 200 iterations)");
 
         for (int k : k_values) {
             string label = "Local Steepest Edge (Candidates, k=" + to_string(k) + ", Random Path)";
@@ -304,6 +352,7 @@ int main() {
         writeRowCompact(texOut, "Random Path", randScores);
         writeRowCompact(texOut, "Local Steepest Edge (Random Path)", localSteepestEdgeScores_Rand);
         writeRowCompact(texOut, "Local Steepest Edge with LM (Random Path)", localSteepestEdgeLMScores_Rand);
+        writeRowCompact(texOut, "MSLS (20 runs x 200 iterations)", mslsScores);
         for (int k : k_values) {
             string label = "Local Steepest Edge (Candidates, k=" + to_string(k) + ", Random Path)";
             writeRowCompact(texOut, label, candidatesScores_Rand[k]);
@@ -316,6 +365,7 @@ int main() {
         writeRowTime(texTimeOut, "Random Path", randTimes_ms);
         writeRowTime(texTimeOut, "Local Steepest Edge (Random Path)", localSteepestEdgeTimes_Rand_ms);
         writeRowTime(texTimeOut, "Local Steepest Edge with LM (Random Path)", localSteepestEdgeLMTimes_Rand_ms);
+        writeRowTime(texTimeOut, "MSLS (20 runs x 200 iterations)", mslsTimes_ms);
         for (int k : k_values) {
             string label = "Local Steepest Edge (Candidates, k=" + to_string(k) + ", Random Path)";
             writeRowTime(texTimeOut, label, candidatesTimes_Rand_ms[k]);

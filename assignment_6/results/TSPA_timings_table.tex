@@ -1,0 +1,18 @@
+\begin{table}[h!]
+\centering
+\begin{tabular}{lc}
+\hline
+Method & Time (avg, min, max) [s] \\
+\hline
+Random Path & 0.0226 (0.0206, 0.0400) \\
+Local Steepest Edge (Random Path) & 106.0118 (90.5920, 147.8120) \\
+Local Steepest Edge with LM (Random Path) & 51.1703 (39.7265, 67.7991) \\
+MSLS (20 runs x 200 iterations) & 21005.1220 (20511.2120, 23825.9320) \\
+Local Steepest Edge (Candidates, k=5, Random Path) & 7.0955 (6.4199, 8.4596) \\
+Local Steepest Edge (Candidates, k=10, Random Path) & 10.9612 (9.8360, 15.2114) \\
+Local Steepest Edge (Candidates, k=15, Random Path) & 15.2471 (13.3431, 17.4908) \\
+\hline
+\end{tabular}
+\caption{Average, minimum, and maximum execution times for TSPA}
+\label{tab:TSPA_timings}
+\end{table}
