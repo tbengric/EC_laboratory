@@ -1,0 +1,21 @@
+\begin{table}[h!]
+\centering
+\begin{tabular}{lc}
+\hline
+Method & Avg (Min, Max) \\
+\hline
+Random Path & 264605.87 (240741, 288499) \\
+Local Steepest Edge (Random Path) & 74138.28 (70918, 80340) \\
+Local Steepest Edge with LM (Random Path) & 74141.12 (71768, 79490) \\
+MSLS (20 runs x 200 iterations) & 71371.95 (70727, 71930) \\
+ILS (20 runs, time-limited) & 69574.55 (69140, 70614) \\
+NLS (20 runs, time-limited, True) & 69500.40 (69207, 69956) \\
+NLS (20 runs, time-limited, False) & 69740.25 (69207, 70366) \\
+Local Steepest Edge (Candidates, k=5, Random Path) & 85982.95 (80485, 93716) \\
+Local Steepest Edge (Candidates, k=10, Random Path) & 78165.57 (74073, 85140) \\
+Local Steepest Edge (Candidates, k=15, Random Path) & 75565.19 (70823, 83021) \\
+\hline
+\end{tabular}
+\caption{Average, min, and max objective values for TSPA}
+\label{tab:TSPA_scores}
+\end{table}
