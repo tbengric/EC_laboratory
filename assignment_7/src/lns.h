@@ -208,103 +208,98 @@ vector<int> steepest_local_search_linear(
 }
 
 // NEW FUNCTIONS
-struct Item {
-    bool is_edge;      
-    int u, v;           
-    int idx_u;          
-    int cost;          
+struct Item { 
+    int idx;
+    double weight; 
 };
-
-vector<Item> create_items(
-    const vector<int>& solution,
-    const vector<vector<int>>& dist_matrix,
-    const vector<Node>& nodes
-) {
-    vector<Item> items;
-    int n = solution.size();
-
-    // Add edges
-    for (int i = 0; i < n; ++i) {
-        int u = solution[i];
-        int v = solution[(i + 1) % n];
-        items.push_back({true, u, v, i, dist_matrix[u][v]});
-    }
-
-    // Add nodes
-    for (int i = 0; i < n; ++i) {
-        int u = solution[i];
-        items.push_back({false, u, -1, i, nodes[u].cost});
-    }
-
-    // Sort
-    sort(items.begin(), items.end(), [](const Item& a, const Item& b) {
-        return a.cost > b.cost;
-    });
-
-    return items;
-}
 
 vector<int> destroy_solution(
     const vector<int>& solution,
     const vector<vector<int>>& dist_matrix,
     const vector<Node>& nodes,
     mt19937& rng,
-    double fraction = 0.3  // default fraction of nodes to remove
+    double fraction = 0.30 // zawsze 30%
 ) {
-    vector<int> current_solution = normalize_cycle(solution);
-    int n = current_solution.size();
-    if (n <= 3) return current_solution;
+    vector<int> current = normalize_cycle(solution);
+    int n = current.size();
+    if (n <= 3) return current;
 
-    auto items = create_items(current_solution, dist_matrix, nodes);
+    // ---- Build weighted items (nodes + edges) ----
+    
+    vector<Item> items;
+    items.reserve(n);
 
-    // Target number of nodes/edges to remove (20-40% by default)
-    int target_removed = max(1, (int)ceil(n * fraction));
+    for (int i = 0; i < n; i++) {
+        int u = current[i];
+        int v = current[(i + 1) % n];
 
-    set<int> removed_indices_set;
+        double edge_cost = dist_matrix[u][v];
+        double node_cost = nodes[u].cost;
 
-    uniform_int_distribution<int> segment_len_dist(2, 8);
+        items.push_back({i, node_cost + edge_cost}); // node weight
+    }
 
-    while ((int)removed_indices_set.size() < target_removed) {
-        // Weighted random choice: expensive nodes/edges are more likely
-        double total_cost = 0.0;
-        for (auto& item : items) total_cost += item.cost;
+    // ---- Target removal count = 30% ----
+    int target = max(1, (int)round(n * fraction));
 
-        double r = uniform_real_distribution<>(0.0, total_cost)(rng);
-        double cum_sum = 0.0;
+    set<int> removed;
+
+    uniform_int_distribution<int> seg_len_dist(2, 6);
+    uniform_int_distribution<int> mode_dist(1, 2);
+    uniform_int_distribution<int> offset_dist(0, n/2);
+
+    // ---- Remove until exactly ~30% removed ----
+    while ((int)removed.size() < target) {
+
+        // --- Weighted roulette-wheel selection ---
+        double total_weight = 0.0;
+        for (auto& it : items)
+            total_weight += it.weight;
+
+        double r = std::uniform_real_distribution<>(0.0, total_weight)(rng);
+        double cum = 0.0;
         int start_idx = 0;
-        for (auto& item : items) {
-            cum_sum += item.cost;
-            if (cum_sum >= r) {
-                start_idx = item.idx_u;
+
+        for (auto& it : items) {
+            cum += it.weight;
+            if (cum >= r && removed.count(it.idx) == 0) {
+                start_idx = it.idx;
                 break;
             }
         }
 
-        // Randomly decide if this is a single subpath or multiple subpaths
-        int num_subpaths = uniform_int_distribution<>(1, 3)(rng);
 
-        for (int sp = 0; sp < num_subpaths && (int)removed_indices_set.size() < target_removed; ++sp) {
-            int segment_len = segment_len_dist(rng);
+        // --- Choose a destruction mode ---
+        int mode = mode_dist(rng);
 
-            // Random offset for multiple subpaths
-            int offset = uniform_int_distribution<>(0, n-1)(rng);
-            for (int j = 0; j < segment_len && (int)removed_indices_set.size() < target_removed; ++j) {
-                int idx = (start_idx + offset + j) % n;
-                removed_indices_set.insert(idx);
+        if (mode == 1) {
+            // 1) SINGLE SUBPATH
+            int len = seg_len_dist(rng);
+            for (int i = 0; i < len && removed.size() < target; i++)
+                removed.insert((start_idx + i) % n);
+
+        } else if (mode == 2) {
+            // 2) MULTIPLE SUBPATHS
+            int num_sp = uniform_int_distribution<>(2, 3)(rng);
+            for (int s = 0; s < num_sp && removed.size() < target; s++) {
+                int len = seg_len_dist(rng);
+                int off = offset_dist(rng);
+                for (int j = 0; j < len && removed.size() < target; j++)
+                    removed.insert((start_idx + off + j) % n);
             }
         }
     }
 
-    // Build new solution by skipping removed indices
-    vector<int> new_solution;
-    for (int i = 0; i < n; ++i) {
-        if (removed_indices_set.find(i) == removed_indices_set.end()) {
-            new_solution.push_back(current_solution[i]);
-        }
-    }
+    // ---- Build resulting solution ----
+    std::vector<int> new_sol;
+    new_sol.reserve(n);
+    for (int i = 0; i < n; i++)
+        if (!removed.count(i))
+            new_sol.push_back(current[i]);
 
-    return close_cycle(new_solution);
+    return close_cycle(new_sol);
 }
+
 
 vector<int> repair_solution(
     const vector<int>& partial_solution,

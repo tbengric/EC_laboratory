@@ -1,0 +1,21 @@
+\begin{table}[h!]
+\centering
+\begin{tabular}{lc}
+\hline
+Method & Avg (Min, Max) \\
+\hline
+Random Path & 213673.99 (195590, 234518) \\
+Local Steepest Edge (Random Path) & 48421.32 (45631, 52371) \\
+Local Steepest Edge with LM (Random Path) & 49044.82 (46069, 52197) \\
+MSLS (20 runs x 200 iterations) & 45905.95 (45389, 46366) \\
+ILS (20 runs, time-limited) & 43908.50 (43497, 44459) \\
+NLS (20 runs, time-limited, True) & 43996.75 (43581, 44260) \\
+NLS (20 runs, time-limited, False) & 44256.45 (43671, 45105) \\
+Local Steepest Edge (Candidates, k=5, Random Path) & 50664.58 (47791, 55480) \\
+Local Steepest Edge (Candidates, k=10, Random Path) & 48711.21 (45506, 52213) \\
+Local Steepest Edge (Candidates, k=15, Random Path) & 48478.01 (45923, 51750) \\
+\hline
+\end{tabular}
+\caption{Average, min, and max objective values for TSPB}
+\label{tab:TSPB_scores}
+\end{table}

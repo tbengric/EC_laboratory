@@ -1,0 +1,21 @@
+\begin{table}[h!]
+\centering
+\begin{tabular}{lc}
+\hline
+Method & Time (avg, min, max) [s] \\
+\hline
+Random Path & 0.0052 (0.0044, 0.0239) \\
+Local Steepest Edge (Random Path) & 10.2649 (8.0421, 15.3924) \\
+Local Steepest Edge with LM (Random Path) & 9.3000 (7.0456, 12.0311) \\
+MSLS (20 runs x 200 iterations) & 1900.8621 (1791.4707, 2033.1554) \\
+ILS (20 runs, time-limited) & 1901.0305 (1900.8718, 1901.2089) \\
+NLS (20 runs, time-limited, True) & 1903.8503 (1901.1062, 1907.0236) \\
+NLS (20 runs, time-limited, False) & 1903.7007 (1901.0532, 1906.1929) \\
+Local Steepest Edge (Candidates, k=5, Random Path) & 1.4422 (1.2621, 1.8868) \\
+Local Steepest Edge (Candidates, k=10, Random Path) & 1.8719 (1.6339, 2.6528) \\
+Local Steepest Edge (Candidates, k=15, Random Path) & 2.3134 (1.9769, 3.4469) \\
+\hline
+\end{tabular}
+\caption{Average, minimum, and maximum execution times for TSPB}
+\label{tab:TSPB_timings}
+\end{table}
