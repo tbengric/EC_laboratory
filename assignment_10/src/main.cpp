@@ -182,12 +182,13 @@ int main() {
             return seeds;
         };
 
-        // --- ILS: perturbation (double-bridge style) ---
-        auto perturbation = [&](const vector<int>& path) -> vector<int> {
-            vector<int> perturbed = path;
-            int n = static_cast<int>(perturbed.size());
-            if (n < 8) return perturbed; // need enough nodes
+        // --- ILS: perturbation (strengthened) ---
+        auto perturbation_strong = [&](const vector<int>& path) -> vector<int> {
+            vector<int> p = path;
+            int n = static_cast<int>(p.size());
+            if (n < 8) return p;
 
+            // 1) Cut into 4 parts and reorder to break structure
             set<int> cut_set;
             while (static_cast<int>(cut_set.size()) < 4) {
                 cut_set.insert(1 + rand() % (n - 2));
@@ -195,13 +196,35 @@ int main() {
             vector<int> cuts(cut_set.begin(), cut_set.end());
             sort(cuts.begin(), cuts.end());
 
-            vector<int> result;
-            for (int i = 0; i < cuts[0]; ++i) result.push_back(perturbed[i]);
-            for (int i = cuts[1]; i < cuts[2]; ++i) result.push_back(perturbed[i]);
-            for (int i = cuts[0]; i < cuts[1]; ++i) result.push_back(perturbed[i]);
-            for (int i = cuts[2]; i < n; ++i) result.push_back(perturbed[i]);
+            vector<int> segA(p.begin(), p.begin() + cuts[0]);
+            vector<int> segB(p.begin() + cuts[0], p.begin() + cuts[1]);
+            vector<int> segC(p.begin() + cuts[1], p.begin() + cuts[2]);
+            vector<int> segD(p.begin() + cuts[2], p.end());
 
-            return result;
+            // occasional reversals to change visiting direction
+            if (rand() % 2) reverse(segB.begin(), segB.end());
+            if (rand() % 2) reverse(segC.begin(), segC.end());
+
+            vector<int> res;
+            res.reserve(n);
+            // reorder as A - C - B - D
+            res.insert(res.end(), segA.begin(), segA.end());
+            res.insert(res.end(), segC.begin(), segC.end());
+            res.insert(res.end(), segB.begin(), segB.end());
+            res.insert(res.end(), segD.begin(), segD.end());
+
+            // 2) Relocate a few internal nodes to random positions (small shake)
+            int moves = max(1, n / 50); // ~2% of nodes
+            for (int k = 0; k < moves; ++k) {
+                if (static_cast<int>(res.size()) < 3) break;
+                int from = 1 + rand() % (static_cast<int>(res.size()) - 2);
+                int node = res[from];
+                res.erase(res.begin() + from);
+                int to = 1 + rand() % (static_cast<int>(res.size()) - 1);
+                res.insert(res.begin() + to, node);
+            }
+
+            return res;
         };
 
         // --- ILS runs ---
@@ -234,7 +257,7 @@ int main() {
             vector<int> x = best_run_path;
 
             while (ils_timer.toc_ms() < ILS_TIME_LIMIT_MS) {
-                vector<int> y = perturbation(x);
+                vector<int> y = perturbation_strong(x);
                 if (!y.empty()) {
                     y = steepest_local_search(y, distanceMatrix, "edge", nodes);
                     local_search_count++;
